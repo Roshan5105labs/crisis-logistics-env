@@ -6,6 +6,8 @@
 
 """FastAPI application for the LogiFlow-RL OpenEnv environment."""
 
+from typing import Optional
+
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 
@@ -99,7 +101,8 @@ async def web_landing() -> HTMLResponse:
 
 
 @app.post("/reset", response_model=ResetResponse, tags=["Environment Control"])
-async def reset_environment(request: ResetRequest) -> ResetResponse:
+async def reset_environment(request: Optional[ResetRequest] = None) -> ResetResponse:
+    request = request or ResetRequest()
     task_id = getattr(request, "task_id", None) or "easy"
     observation = env.reset(seed=request.seed, episode_id=request.episode_id, task_id=task_id)
     return ResetResponse(
