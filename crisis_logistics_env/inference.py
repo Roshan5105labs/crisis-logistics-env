@@ -1,14 +1,24 @@
 import os
+import json
+import re
 from typing import List, Optional
 
 from openai import OpenAI
 
-from crisis_logistics_env import CrisisLogisticsAction
-from crisis_logistics_env.server.crisis_logistics_env_environment import (
-    CrisisLogisticsEnvironment,
-    choose_balancing_action,
-)
-from crisis_logistics_env.tasks import list_tasks
+try:
+    from crisis_logistics_env import CrisisLogisticsAction
+    from crisis_logistics_env.server.crisis_logistics_env_environment import (
+        CrisisLogisticsEnvironment,
+        choose_network_action,
+    )
+    from crisis_logistics_env.tasks import list_tasks
+except ImportError:
+    from models import CrisisLogisticsAction
+    from server.crisis_logistics_env_environment import (
+        CrisisLogisticsEnvironment,
+        choose_network_action,
+    )
+    from tasks import list_tasks
 
 
 API_KEY = os.getenv("HF_TOKEN") or os.getenv("OPENAI_API_KEY") or os.getenv("API_KEY")
@@ -18,10 +28,10 @@ BENCHMARK = os.getenv("BENCHMARK") or "logiflow_rl"
 MAX_STEPS_OVERRIDE = os.getenv("MAX_STEPS")
 
 SYSTEM_PROMPT = (
-    "You are controlling a logistics routing environment with 3 hubs. "
-    "Reply with exactly one digit: 0, 1, or 2. "
-    "Choose the hub that best keeps the network balanced, avoids overload above 100, "
-    "and keeps hubs near the 30-70 utilization band."
+    "You are a live logistics crisis manager controlling a 12-node supply-chain network. "
+    "Reason about visible node loads, active disruptions, delayed in-transit shipments, and SLA pressure. "
+    "Return exactly one JSON object with keys: reasoning, source_node, dest_node, shipment_volume. "
+    "The destination must be connected to the source."
 )
 
 
@@ -46,32 +56,39 @@ def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> No
     )
 
 
-def build_user_prompt(task_title: str, objective: str, step: int, hub_loads: List[float], incoming_load: float, event_label: str, score: float) -> str:
+def build_user_prompt(observation, task_title: str) -> str:
     return (
         f"Task: {task_title}\n"
-        f"Objective: {objective}\n"
-        f"Step: {step}\n"
-        f"Hub loads: {hub_loads}\n"
-        f"Incoming shipment: {incoming_load}\n"
-        f"Traffic event: {event_label}\n"
-        f"Current score: {score:.3f}\n"
-        "Return only one hub id: 0, 1, or 2."
+        f"Objective: {observation.objective}\n"
+        f"Step: {observation.step_count + 1}/{observation.max_steps}\n"
+        f"Visible nodes: {observation.visible_node_ids}\n"
+        f"Observed node loads: {observation.observed_node_loads}\n"
+        f"Node capacities: {observation.node_capacities}\n"
+        f"Visible connectivity: {observation.visible_connectivity}\n"
+        f"Active disruptions: {observation.active_disruptions}\n"
+        f"In-transit shipments: {observation.in_transit_shipments[:8]}\n"
+        f"Incoming shipment: source={observation.pending_source_node}, volume={observation.incoming_load}\n"
+        f"Traffic event: {observation.event_label}\n"
+        f"Current score: {observation.cumulative_score:.3f}\n"
+        "Return one compact JSON object only."
     )
 
 
-def choose_action_with_model(client: OpenAI, prompt: str) -> int:
+def choose_action_with_model(client: OpenAI, prompt: str) -> CrisisLogisticsAction:
     response = client.chat.completions.create(
         model=MODEL_NAME,
         temperature=0.0,
-        max_tokens=4,
+        max_tokens=180,
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": prompt},
         ],
     )
     text = (response.choices[0].message.content or "").strip()
-    if text and text[0] in {"0", "1", "2"}:
-        return int(text[0])
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    if match:
+        payload = json.loads(match.group(0))
+        return CrisisLogisticsAction(**payload)
     raise ValueError(f"invalid_model_output:{text}")
 
 
@@ -89,30 +106,26 @@ def run_task(task_id: str, client: Optional[OpenAI]) -> float:
 
     try:
         while not observation.done and observation.step_count < max_steps:
-            action_value = choose_balancing_action(observation)
+            action = choose_network_action(observation)
             if client is not None:
-                prompt = build_user_prompt(
-                    env.task.title,
-                    observation.objective,
-                    observation.step_count + 1,
-                    observation.hub_loads,
-                    observation.incoming_load,
-                    observation.event_label,
-                    observation.cumulative_score,
-                )
+                prompt = build_user_prompt(observation, env.task.title)
                 try:
-                    action_value = choose_action_with_model(client, prompt)
+                    action = choose_action_with_model(client, prompt)
                     last_error = None
                 except Exception as exc:
                     last_error = str(exc)
 
-            action = CrisisLogisticsAction(target_hub=action_value)
             observation = env.step(action)
             reward = float(observation.reward or 0.0)
             rewards.append(reward)
+            action_label = (
+                f"route({action.source_node}->{action.dest_node},vol={action.shipment_volume})"
+                if action.source_node is not None and action.dest_node is not None
+                else f"route({action.target_hub})"
+            )
             log_step(
                 step=observation.step_count,
-                action=f"route({action_value})",
+                action=action_label,
                 reward=reward,
                 done=observation.done,
                 error=last_error,

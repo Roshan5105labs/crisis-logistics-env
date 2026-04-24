@@ -1,9 +1,8 @@
 import asyncio
 
-from models import CrisisLogisticsAction
 from server.crisis_logistics_env_environment import (
     CrisisLogisticsEnvironment,
-    choose_balancing_action,
+    choose_network_action,
 )
 
 
@@ -15,15 +14,22 @@ async def test_run():
     obs = env.reset(task_id="medium")
     print(f"Task: {obs.task_id} ({obs.difficulty})")
     print(f"Objective: {obs.objective}")
-    print(f"Hub Loads: {obs.hub_loads}")
+    print(f"Tier Loads: {obs.hub_loads}")
+    print(f"Node Count: {len(obs.node_loads)}")
+    print(f"Visible Nodes: {obs.visible_node_ids}")
     print(f"Incoming Load: {obs.incoming_load}")
     print(f"Event Type: {obs.event_label}")
 
-    suggested_hub = choose_balancing_action(obs)
-    print(f"\n[POLICY] Baseline sends shipment to hub {suggested_hub}...")
-    obs = env.step(CrisisLogisticsAction(target_hub=suggested_hub))
+    action = choose_network_action(obs)
+    print(
+        f"\n[POLICY] Baseline routes {action.shipment_volume} units "
+        f"from node {action.source_node} to node {action.dest_node}..."
+    )
+    obs = env.step(action)
 
-    print(f"Updated Loads: {obs.hub_loads}")
+    print(f"Updated Tier Loads: {obs.hub_loads}")
+    print(f"In Transit: {len(obs.in_transit_shipments)}")
+    print(f"Reward Breakdown: {obs.reward_breakdown}")
     print(f"Reward Received: {obs.reward}")
     print(f"Current Score: {obs.cumulative_score}")
     print(f"Next Incoming Load: {obs.incoming_load}")

@@ -6,6 +6,7 @@
 
 """FastAPI application for the LogiFlow-RL OpenEnv environment."""
 
+from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI
@@ -57,6 +58,22 @@ app = FastAPI(
 )
 
 env = CrisisLogisticsEnvironment()
+VISUALIZER_PATH = Path(__file__).resolve().parent.parent / "visualisation" / "logiflow_visualizer.html"
+
+
+def _read_visualizer_html() -> str:
+    """Load the standalone visualizer HTML bundled with the project."""
+    if VISUALIZER_PATH.exists():
+        return VISUALIZER_PATH.read_text(encoding="utf-8")
+    return """
+    <html>
+      <head><title>LogiFlow-RL Visualizer Missing</title></head>
+      <body style="font-family: Arial, sans-serif; margin: 40px;">
+        <h1>Visualizer file not found</h1>
+        <p>Expected to find the visualizer at <code>/visualisation/logiflow_visualizer.html</code>.</p>
+      </body>
+    </html>
+    """
 
 
 @app.get("/", response_class=HTMLResponse, tags=["Environment Info"])
@@ -72,7 +89,7 @@ async def root() -> HTMLResponse:
               <li><a href="/docs">API docs</a></li>
               <li><a href="/health">Health</a></li>
               <li><a href="/schema">Schema</a></li>
-              <li><a href="/web">Web landing page</a></li>
+              <li><a href="/web">Live visualizer</a></li>
             </ul>
           </body>
         </html>
@@ -82,22 +99,12 @@ async def root() -> HTMLResponse:
 
 @app.get("/web", response_class=HTMLResponse, tags=["Environment Info"])
 async def web_landing() -> HTMLResponse:
-    return HTMLResponse(
-        """
-        <html>
-          <head><title>LogiFlow-RL Web</title></head>
-          <body style="font-family: Arial, sans-serif; margin: 40px;">
-            <h1>LogiFlow-RL</h1>
-            <p>The environment is live. Use the links below to explore it.</p>
-            <ul>
-              <li><a href="/docs">Swagger docs</a></li>
-              <li><a href="/health">Health endpoint</a></li>
-              <li><a href="/schema">JSON schema</a></li>
-            </ul>
-          </body>
-        </html>
-        """
-    )
+    return HTMLResponse(_read_visualizer_html())
+
+
+@app.get("/visualizer", response_class=HTMLResponse, tags=["Environment Info"])
+async def visualizer() -> HTMLResponse:
+    return HTMLResponse(_read_visualizer_html())
 
 
 @app.post("/reset", response_model=ResetResponse, tags=["Environment Control"])

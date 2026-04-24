@@ -6,7 +6,7 @@ from graders import EpisodeMetrics, grade_episode
 from models import CrisisLogisticsAction
 from server.crisis_logistics_env_environment import (
     CrisisLogisticsEnvironment,
-    choose_balancing_action,
+    choose_network_action,
 )
 from tasks import list_tasks
 
@@ -28,9 +28,9 @@ def run_policy(task_id: str, policy: str) -> EpisodeSummary:
         if policy == "round_robin":
             action = round_robin_step % 3
             round_robin_step += 1
+            observation = env.step(CrisisLogisticsAction(target_hub=action))
         else:
-            action = choose_balancing_action(observation)
-        observation = env.step(CrisisLogisticsAction(target_hub=action))
+            observation = env.step(choose_network_action(observation))
 
     metrics = EpisodeMetrics(
         total_reward=env.total_reward,
@@ -40,6 +40,10 @@ def run_policy(task_id: str, policy: str) -> EpisodeSummary:
         average_balance_gap=sum(env.balance_gap_history) / max(len(env.balance_gap_history), 1),
         throughput_served=env.throughput_served,
         steps_completed=env.step_count,
+        retail_delivered=env.retail_delivered,
+        sla_success_rate=env._sla_success_rate(),
+        disruption_recovery_score=sum(env.recovery_history) / max(len(env.recovery_history), 1),
+        invalid_actions=env.invalid_actions,
     )
     score = grade_episode(env.task, metrics)
     return EpisodeSummary(

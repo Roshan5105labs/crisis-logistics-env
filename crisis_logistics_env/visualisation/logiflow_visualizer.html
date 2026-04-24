@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LogiFlow-RL · Live Environment Visualizer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2236;
+    --border: #1e2d45;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --green: #00e676;
+    --amber: #ffab00;
+    --red: #ff3d57;
+    --text: #e8edf5;
+    --muted: #5a7090;
+    --mono: 'Space Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; overflow-x: hidden; }
+
+  /* Grid lines background */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.3;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+  /* Header */
+  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-icon { width: 38px; height: 38px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-weight: 700; font-size: 14px; color: var(--bg); }
+  .logo-text h1 { font-family: var(--mono); font-size: 16px; font-weight: 700; color: var(--accent); letter-spacing: 1px; }
+  .logo-text p { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .status-pill { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; font-size: 11px; font-family: var(--mono); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+  .dot.live { background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  /* Controls */
+  .controls { display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }
+  .server-input { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 9px 14px; border-radius: 8px; font-family: var(--mono); font-size: 12px; outline: none; }
+  .server-input:focus { border-color: var(--accent); }
+  select { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 9px 14px; border-radius: 8px; font-family: var(--sans); font-size: 12px; outline: none; cursor: pointer; }
+  select:focus { border-color: var(--accent); }
+  btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 8px; font-family: var(--sans); font-size: 12px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; }
+  .btn-primary { background: var(--accent); color: var(--bg); }
+  .btn-primary:hover { background: #33ddff; transform: translateY(-1px); }
+  .btn-secondary { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: var(--surface); border: 1px solid var(--border); color: var(--red); }
+  .btn-auto { background: var(--surface2); border: 1px solid var(--border); color: var(--amber); }
+  .btn-auto.running { border-color: var(--amber); background: rgba(255,171,0,0.1); }
+
+  /* Main grid */
+  .main-grid { display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
+
+  /* Cards */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .card-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .card-title { font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; }
+  .card-body { padding: 16px; }
+
+  /* Hub viz */
+  .hub-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
+  .hub-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; position: relative; transition: border-color 0.3s; }
+  .hub-card.overloaded { border-color: var(--red); box-shadow: 0 0 16px rgba(255,61,87,0.2); }
+  .hub-card.optimal { border-color: var(--green); }
+  .hub-card.warning { border-color: var(--amber); }
+  .hub-name { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+  .hub-load-val { font-family: var(--mono); font-size: 28px; font-weight: 700; line-height: 1; margin-bottom: 10px; }
+  .hub-load-val span { font-size: 14px; color: var(--muted); font-weight: 400; }
+  .bar-track { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+  .bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s cubic-bezier(0.4,0,0.2,1); }
+  .bar-fill.green { background: var(--green); }
+  .bar-fill.amber { background: var(--amber); }
+  .bar-fill.red { background: var(--red); box-shadow: 0 0 8px var(--red); }
+  .hub-drain { font-size: 10px; color: var(--muted); font-family: var(--mono); }
+  .hub-status-badge { position: absolute; top: 10px; right: 10px; font-size: 9px; font-family: var(--mono); font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+  .badge-optimal { background: rgba(0,230,118,0.15); color: var(--green); }
+  .badge-warning { background: rgba(255,171,0,0.15); color: var(--amber); }
+  .badge-critical { background: rgba(255,61,87,0.15); color: var(--red); }
+
+  /* Network SVG */
+  .network-wrap { position: relative; }
+  .network-svg { width: 100%; height: 220px; }
+
+  /* Step controls */
+  .step-panel { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+  .step-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .step-label { font-family: var(--mono); font-size: 10px; color: var(--muted); min-width: 80px; }
+  .action-btns { display: flex; gap: 6px; }
+  .action-btn { flex: 1; padding: 8px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--mono); font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.15s; text-align: center; }
+  .action-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .action-btn.selected { border-color: var(--accent); background: rgba(0,212,255,0.1); color: var(--accent); }
+  .submit-btn { width: 100%; padding: 10px; background: var(--accent); color: var(--bg); border: none; border-radius: 8px; font-family: var(--mono); font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.15s; letter-spacing: 1px; }
+  .submit-btn:hover { background: #33ddff; }
+  .submit-btn:disabled { background: var(--muted); cursor: not-allowed; }
+
+  /* Stats sidebar */
+  .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--border); }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-label { font-size: 11px; color: var(--muted); }
+  .stat-val { font-family: var(--mono); font-size: 12px; font-weight: 700; }
+  .stat-val.green { color: var(--green); }
+  .stat-val.amber { color: var(--amber); }
+  .stat-val.red { color: var(--red); }
+  .stat-val.blue { color: var(--accent); }
+
+  /* Score arc */
+  .score-wrap { display: flex; flex-direction: column; align-items: center; padding: 16px 0 8px; }
+  .score-arc { position: relative; width: 120px; height: 70px; margin-bottom: 6px; }
+  .score-arc svg { width: 120px; height: 70px; }
+  .score-number { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); font-family: var(--mono); font-size: 22px; font-weight: 700; color: var(--accent); }
+  .score-label { font-size: 10px; color: var(--muted); font-family: var(--mono); letter-spacing: 1px; }
+
+  /* Event badge */
+  .event-tag { display: inline-block; padding: 4px 10px; border-radius: 6px; font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.5px; }
+  .event-normal { background: rgba(0,212,255,0.1); color: var(--accent); border: 1px solid rgba(0,212,255,0.3); }
+  .event-flash { background: rgba(255,171,0,0.1); color: var(--amber); border: 1px solid rgba(255,171,0,0.3); }
+  .event-weather { background: rgba(255,61,87,0.1); color: var(--red); border: 1px solid rgba(255,61,87,0.3); }
+
+  /* Log */
+  .log-area { font-family: var(--mono); font-size: 10px; color: var(--muted); line-height: 1.8; max-height: 130px; overflow-y: auto; }
+  .log-area::-webkit-scrollbar { width: 4px; }
+  .log-area::-webkit-scrollbar-track { background: transparent; }
+  .log-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .log-entry { display: flex; gap: 8px; }
+  .log-time { color: var(--muted); min-width: 50px; }
+  .log-msg.good { color: var(--green); }
+  .log-msg.warn { color: var(--amber); }
+  .log-msg.bad { color: var(--red); }
+  .log-msg.info { color: var(--accent); }
+
+  /* Progress bar for episode */
+  .episode-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin: 10px 0 4px; }
+  .episode-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #7b4fff); border-radius: 2px; transition: width 0.4s; }
+
+  /* Reward history sparkline */
+  .sparkline-wrap { margin-top: 6px; }
+  .sparkline-canvas { width: 100%; height: 50px; display: block; }
+
+  /* Incoming panel */
+  .incoming-panel { display: flex; align-items: center; gap: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+  .incoming-icon { font-size: 24px; }
+  .incoming-val { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--accent2); }
+  .incoming-sub { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  /* Offline overlay */
+  .offline-overlay { display: none; position: absolute; inset: 0; background: rgba(10,14,26,0.85); border-radius: 12px; align-items: center; justify-content: center; flex-direction: column; gap: 8px; z-index: 10; }
+  .offline-overlay.show { display: flex; }
+  .offline-msg { font-family: var(--mono); font-size: 12px; color: var(--muted); text-align: center; }
+
+  /* Demo mode banner */
+  .demo-banner { background: rgba(255,171,0,0.08); border: 1px solid rgba(255,171,0,0.3); border-radius: 8px; padding: 8px 14px; margin-bottom: 16px; font-size: 11px; color: var(--amber); font-family: var(--mono); display: flex; align-items: center; gap: 8px; }
+
+  @media (max-width: 800px) {
+    .main-grid { grid-template-columns: 1fr; }
+    .hub-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">
+      <div class="logo-icon">LF</div>
+      <div class="logo-text">
+        <h1>LOGIFLOW-RL</h1>
+        <p>Live Environment Visualizer · 12-node crisis network</p>
+      </div>
+    </div>
+    <div class="status-pill">
+      <div class="dot" id="statusDot"></div>
+      <span id="statusText" style="font-size:11px;">OFFLINE</span>
+    </div>
+  </header>
+
+  <!-- Server config -->
+  <div class="controls">
+    <input class="server-input" id="serverUrl" type="text" value="http://localhost:8000" placeholder="http://localhost:8000 or HuggingFace Space URL" />
+    <select id="taskSelect">
+      <option value="easy">Easy — Steady-State</option>
+      <option value="medium">Medium — Flash Sale</option>
+      <option value="hard">Hard — Cascading Disruption</option>
+    </select>
+    <button class="btn-primary" onclick="connectAndReset()" style="padding:9px 18px; background:var(--accent); color:var(--bg); border:none; border-radius:8px; font-family:var(--sans); font-size:12px; font-weight:600; cursor:pointer;">⟳ Connect &amp; Reset</button>
+    <button class="btn-auto" id="autoBtn" onclick="toggleAuto()" style="padding:9px 18px; background:var(--surface2); border:1px solid var(--border); color:var(--amber); border-radius:8px; font-family:var(--sans); font-size:12px; font-weight:600; cursor:pointer;">▶ Auto Play</button>
+    <button class="btn-secondary" onclick="useDemoMode()" style="padding:9px 18px; background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:8px; font-family:var(--sans); font-size:12px; font-weight:600; cursor:pointer;">Demo Mode</button>
+  </div>
+
+  <div class="demo-banner" id="demoBanner" style="display:none;">
+    ⚠ DEMO MODE — Simulating environment locally. To use live data, start your FastAPI server and click Connect.
+  </div>
+
+  <div class="main-grid">
+
+    <!-- LEFT: Main viz -->
+    <div>
+
+      <!-- Hubs -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header">
+          <span class="card-title">Hub Network · Live Load</span>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span id="eventBadge" class="event-tag event-normal">NORMAL</span>
+            <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">Step <span id="stepCount">—</span> / <span id="maxSteps">—</span></span>
+          </div>
+        </div>
+        <div class="card-body">
+
+          <!-- Episode progress -->
+          <div class="episode-bar"><div class="episode-fill" id="episodeBar" style="width:0%"></div></div>
+          <div style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-bottom:14px;">Episode progress</div>
+
+          <!-- Hub cards -->
+          <div class="hub-grid" id="hubGrid">
+            <div class="hub-card" id="hub0">
+              <div class="hub-name">Hub 0 · Alpha</div>
+              <div class="hub-load-val" id="hub0val">—<span>%</span></div>
+              <div class="bar-track"><div class="bar-fill green" id="hub0bar" style="width:0%"></div></div>
+              <div class="hub-drain" id="hub0drain">Drain: —%/step</div>
+              <div class="hub-status-badge badge-optimal" id="hub0badge">OPTIMAL</div>
+            </div>
+            <div class="hub-card" id="hub1">
+              <div class="hub-name">Hub 1 · Beta</div>
+              <div class="hub-load-val" id="hub1val">—<span>%</span></div>
+              <div class="bar-track"><div class="bar-fill green" id="hub1bar" style="width:0%"></div></div>
+              <div class="hub-drain" id="hub1drain">Drain: —%/step</div>
+              <div class="hub-status-badge badge-optimal" id="hub1badge">OPTIMAL</div>
+            </div>
+            <div class="hub-card" id="hub2">
+              <div class="hub-name">Hub 2 · Gamma</div>
+              <div class="hub-load-val" id="hub2val">—<span>%</span></div>
+              <div class="bar-track"><div class="bar-fill green" id="hub2bar" style="width:0%"></div></div>
+              <div class="hub-drain" id="hub2drain">Drain: —%/step</div>
+              <div class="hub-status-badge badge-optimal" id="hub2badge">OPTIMAL</div>
+            </div>
+          </div>
+
+          <!-- Network SVG -->
+          <div class="network-wrap">
+            <svg class="network-svg" id="networkSvg" viewBox="0 0 600 180">
+              <defs>
+                <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+                  <path d="M2 2L8 5L2 8" fill="none" stroke="#1e2d45" stroke-width="2"/>
+                </marker>
+                <marker id="arrActive" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+                  <path d="M2 2L8 5L2 8" fill="none" stroke="#00d4ff" stroke-width="2"/>
+                </marker>
+              </defs>
+              <!-- Shipment source -->
+              <rect x="20" y="70" width="80" height="40" rx="8" fill="#1a2236" stroke="#1e2d45" stroke-width="1.5"/>
+              <text x="60" y="87" text-anchor="middle" fill="#5a7090" font-family="Space Mono" font-size="9" font-weight="700">INCOMING</text>
+              <text x="60" y="101" text-anchor="middle" fill="#ff6b35" font-family="Space Mono" font-size="13" font-weight="700" id="netIncoming">—</text>
+              <!-- Arrows to hubs -->
+              <line x1="100" y1="90" x2="190" y2="55" stroke="#1e2d45" stroke-width="1.5" marker-end="url(#arr)" id="line0"/>
+              <line x1="100" y1="90" x2="190" y2="90" stroke="#1e2d45" stroke-width="1.5" marker-end="url(#arr)" id="line1"/>
+              <line x1="100" y1="90" x2="190" y2="125" stroke="#1e2d45" stroke-width="1.5" marker-end="url(#arr)" id="line2"/>
+              <!-- Hub 0 node -->
+              <rect x="195" y="30" width="100" height="50" rx="8" fill="#111827" stroke="#1e2d45" stroke-width="1.5" id="netHub0"/>
+              <text x="245" y="51" text-anchor="middle" fill="#5a7090" font-family="Space Mono" font-size="9" font-weight="700">HUB 0 · ALPHA</text>
+              <text x="245" y="69" text-anchor="middle" fill="#e8edf5" font-family="Space Mono" font-size="15" font-weight="700" id="netHub0val">—%</text>
+              <!-- Hub 1 node -->
+              <rect x="195" y="65" width="100" height="50" rx="8" fill="#111827" stroke="#1e2d45" stroke-width="1.5" id="netHub1"/>
+              <text x="245" y="86" text-anchor="middle" fill="#5a7090" font-family="Space Mono" font-size="9" font-weight="700">HUB 1 · BETA</text>
+              <text x="245" y="104" text-anchor="middle" fill="#e8edf5" font-family="Space Mono" font-size="15" font-weight="700" id="netHub1val">—%</text>
+              <!-- Hub 2 node -->
+              <rect x="195" y="100" width="100" height="50" rx="8" fill="#111827" stroke="#1e2d45" stroke-width="1.5" id="netHub2"/>
+              <text x="245" y="121" text-anchor="middle" fill="#5a7090" font-family="Space Mono" font-size="9" font-weight="700">HUB 2 · GAMMA</text>
+              <text x="245" y="139" text-anchor="middle" fill="#e8edf5" font-family="Space Mono" font-size="15" font-weight="700" id="netHub2val">—%</text>
+              <!-- Arrow to delivery -->
+              <line x1="295" y1="55" x2="400" y2="90" stroke="#1e2d45" stroke-width="1.5" marker-end="url(#arr)" id="outLine0"/>
+              <line x1="295" y1="90" x2="400" y2="90" stroke="#1e2d45" stroke-width="1.5" marker-end="url(#arr)" id="outLine1"/>
+              <line x1="295" y1="125" x2="400" y2="90" stroke="#1e2d45" stroke-width="1.5" marker-end="url(#arr)" id="outLine2"/>
+              <!-- Delivery node -->
+              <rect x="405" y="65" width="90" height="50" rx="8" fill="#1a2236" stroke="#1e2d45" stroke-width="1.5"/>
+              <text x="450" y="87" text-anchor="middle" fill="#5a7090" font-family="Space Mono" font-size="9" font-weight="700">DELIVERY</text>
+              <text x="450" y="103" text-anchor="middle" fill="#00e676" font-family="Space Mono" font-size="11" font-weight="700" id="netScore">SCORE: —</text>
+              <!-- Optimal zone annotation -->
+              <text x="245" y="162" text-anchor="middle" fill="#1e2d45" font-family="Space Mono" font-size="9">OPTIMAL ZONE: 30–70%</text>
+              <line x1="200" y1="170" x2="290" y2="170" stroke="#1e2d45" stroke-width="1" stroke-dasharray="3 2"/>
+            </svg>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Action panel -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Agent Action</span>
+          <div class="incoming-panel" style="margin:0;padding:6px 12px;">
+            <span style="font-size:16px;">📦</span>
+            <div>
+              <div class="incoming-val" id="incomingVal" style="font-size:15px;">—</div>
+              <div class="incoming-sub">Incoming load %</div>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-family:var(--mono);">Select route option for the current source node:</div>
+          <div class="action-btns" id="actionBtns">
+            <button class="action-btn" id="act0" onclick="selectAction(0)">Route 0<br><span style="font-size:9px;color:var(--muted)" id="act0load">—%</span></button>
+            <button class="action-btn" id="act1" onclick="selectAction(1)">Route 1<br><span style="font-size:9px;color:var(--muted)" id="act1load">—%</span></button>
+            <button class="action-btn" id="act2" onclick="selectAction(2)">Route 2<br><span style="font-size:9px;color:var(--muted)" id="act2load">—%</span></button>
+          </div>
+          <div style="margin-top:10px;">
+            <button class="submit-btn" id="submitBtn" onclick="sendAction()" disabled>→ ROUTE SHIPMENT</button>
+          </div>
+          <div style="margin-top:8px; font-family:var(--mono); font-size:10px; color:var(--muted); min-height:16px;" id="lastMsg"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Sidebar -->
+    <div>
+
+      <!-- Score -->
+      <div class="card" style="margin-bottom:14px;">
+        <div class="card-header"><span class="card-title">Episode Score</span></div>
+        <div class="card-body">
+          <div class="score-wrap">
+            <div class="score-arc">
+              <svg viewBox="0 0 120 70">
+                <path d="M10 65 A55 55 0 0 1 110 65" fill="none" stroke="#1e2d45" stroke-width="8" stroke-linecap="round"/>
+                <path d="M10 65 A55 55 0 0 1 110 65" fill="none" stroke="#00d4ff" stroke-width="8" stroke-linecap="round"
+                  stroke-dasharray="173" stroke-dashoffset="173" id="scoreArc" style="transition:stroke-dashoffset 0.5s;"/>
+              </svg>
+              <div class="score-number" id="scoreNum">—</div>
+            </div>
+            <div class="score-label">CUMULATIVE SCORE</div>
+          </div>
+
+          <div style="margin-top:10px;">
+            <div class="stat-row">
+              <span class="stat-label">Last Reward</span>
+              <span class="stat-val" id="lastReward">—</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Bottlenecks</span>
+              <span class="stat-val red" id="bottlenecks">—</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Overloaded Hubs</span>
+              <span class="stat-val" id="overloaded">—</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Task</span>
+              <span class="stat-val blue" id="taskName">—</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Difficulty</span>
+              <span class="stat-val" id="difficulty">—</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">In Transit</span>
+              <span class="stat-val amber" id="inTransit">—</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Retail Delivered</span>
+              <span class="stat-val green" id="retailDelivered">—</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">SLA Success</span>
+              <span class="stat-val blue" id="slaSuccess">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reward sparkline -->
+      <div class="card" style="margin-bottom:14px;">
+        <div class="card-header"><span class="card-title">Reward History</span></div>
+        <div class="card-body" style="padding:12px;">
+          <canvas class="sparkline-canvas" id="sparkline" height="50"></canvas>
+        </div>
+      </div>
+
+      <!-- Objective -->
+      <div class="card" style="margin-bottom:14px;">
+        <div class="card-header"><span class="card-title">Task Objective</span></div>
+        <div class="card-body">
+          <p style="font-size:11px;color:var(--muted);line-height:1.7;" id="objective">Connect to environment to see task objective.</p>
+        </div>
+      </div>
+
+      <!-- Log -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Event Log</span>
+          <button onclick="clearLog()" style="font-size:9px;color:var(--muted);background:none;border:none;cursor:pointer;font-family:var(--mono);">CLEAR</button>
+        </div>
+        <div class="card-body" style="padding:10px 14px;">
+          <div class="log-area" id="logArea"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── State ──
+  let obs = null;
+  let selectedAction = null;
+  let rewardHistory = [];
+  let autoInterval = null;
+  let demoMode = false;
+  let demoStep = 0;
+
+  // Demo data simulating the easy task from tasks.py
+  const DEMO_TASKS = {
+    easy: { initial_loads:[28,42,35], drain_rates:[8,7,6], incoming:[9,8,11,10,9,12,8,10,9,11,8,10], events:Array(12).fill('normal'), max_steps:12 },
+    medium: { initial_loads:[34,48,31], drain_rates:[8,7,6], incoming:[10,12,18,22,20,16,11,13,17,14,10,9,8,10], events:['normal','normal','flash_sale','flash_sale','flash_sale','weather_disruption','normal','normal','flash_sale','weather_disruption','normal','normal','normal','normal'], max_steps:14 },
+    hard: { initial_loads:[45,57,40], drain_rates:[8,7,6], incoming:[16,22,19,24,18,20,23,14,25,17,15,21,13,18,14,12], events:['weather_disruption','flash_sale','weather_disruption','flash_sale','normal','weather_disruption','flash_sale','normal','flash_sale','weather_disruption','normal','flash_sale','normal','weather_disruption','normal','normal'], max_steps:16 }
+  };
+  let demoState = null;
+
+  // ── API ──
+  function serverUrl() { return document.getElementById('serverUrl').value.replace(/\/$/, ''); }
+  function taskId() { return document.getElementById('taskSelect').value; }
+
+  async function apiCall(path, method='GET', body=null) {
+    const opts = { method, headers: {'Content-Type':'application/json'} };
+    if (body) opts.body = JSON.stringify(body);
+    const r = await fetch(serverUrl() + path, opts);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  }
+
+  // ── Connect & Reset ──
+  async function connectAndReset() {
+    demoMode = false;
+    document.getElementById('demoBanner').style.display = 'none';
+    log('Connecting to ' + serverUrl() + '...', 'info');
+    try {
+      await apiCall('/health');
+      setStatus(true);
+      log('Connected ✓', 'good');
+      await resetEnv();
+    } catch(e) {
+      setStatus(false);
+      log('Cannot reach server: ' + e.message, 'bad');
+      log('Tip: Run "uvicorn crisis_logistics_env.server.app:app --reload" or use Demo Mode', 'warn');
+    }
+  }
+
+  async function resetEnv() {
+    try {
+      const res = await apiCall('/reset', 'POST', { task_id: taskId() });
+      obs = res.observation;
+      rewardHistory = [];
+      demoStep = 0;
+      selectedAction = null;
+      updateUI();
+      log(`Episode reset → task: ${obs.task_id}`, 'info');
+      document.getElementById('submitBtn').disabled = false;
+    } catch(e) { log('Reset failed: ' + e.message, 'bad'); }
+  }
+
+  async function sendAction() {
+    if (selectedAction === null) return;
+    try {
+      const res = await apiCall('/step', 'POST', { action: { target_hub: selectedAction } });
+      obs = res.observation;
+      rewardHistory.push(obs.last_reward);
+      const action = obs.last_action || {};
+      const routeText = action.source_node !== undefined ? `${action.source_node}→${action.dest_node}` : `option ${selectedAction}`;
+      log(`Step ${obs.step_count}: ${routeText} | reward ${obs.last_reward.toFixed(3)} | ${obs.event_label}`, obs.last_reward > 0.5 ? 'good' : obs.last_reward > 0.2 ? 'warn' : 'bad');
+      selectedAction = null;
+      document.getElementById(`act0`).classList.remove('selected');
+      document.getElementById(`act1`).classList.remove('selected');
+      document.getElementById(`act2`).classList.remove('selected');
+      updateUI();
+      if (obs.done) {
+        log(`Episode complete! Final score: ${obs.cumulative_score.toFixed(3)}`, 'good');
+        document.getElementById('submitBtn').disabled = true;
+        stopAuto();
+      }
+    } catch(e) { log('Step failed: ' + e.message, 'bad'); }
+  }
+
+  // ── Demo Mode ──
+  function useDemoMode() {
+    demoMode = true;
+    document.getElementById('demoBanner').style.display = 'flex';
+    setStatus(true);
+    resetDemo();
+    log('Demo mode activated — simulating Phase 1 environment', 'info');
+  }
+
+  function resetDemo() {
+    const task = DEMO_TASKS[taskId()];
+    demoState = {
+      hub_loads: [...task.initial_loads],
+      drain_rates: [...task.drain_rates],
+      step: 0,
+      max_steps: task.max_steps,
+      incoming: task.incoming,
+      events: task.events,
+      bottlenecks: 0,
+      score: 0,
+      task_id: taskId()
+    };
+    rewardHistory = [];
+    selectedAction = null;
+    buildDemoObs(0);
+    updateUI();
+    document.getElementById('submitBtn').disabled = false;
+    log(`Demo reset → task: ${taskId()}`, 'info');
+  }
+
+  function buildDemoObs(incoming) {
+    const s = demoState;
+    const overloaded = s.hub_loads.filter(l => l > 100).length;
+    const balanceGap = Math.max(...s.hub_loads) - Math.min(...s.hub_loads);
+    const reward = Math.max(0, 1 - overloaded * 0.3 - balanceGap / 100);
+    obs = {
+      task_id: s.task_id, difficulty: s.task_id,
+      hub_loads: [...s.hub_loads], drain_rates: [...s.drain_rates],
+      incoming_load: incoming, step_count: s.step, max_steps: s.max_steps,
+      overloaded_hubs: overloaded, cumulative_score: s.score,
+      last_reward: s.step === 0 ? 0 : reward,
+      event_label: s.step < s.events.length ? s.events[s.step] : 'normal',
+      message: `Step ${s.step}: Balance gap ${balanceGap.toFixed(1)}%`,
+      objective: s.task_id === 'easy' ? 'Keep all hubs in the 30–70% utilization band.' : s.task_id === 'medium' ? 'Absorb the flash-sale surge without any hub overloading.' : 'Stabilize through repeated surge waves and weather disruptions.',
+      done: s.step >= s.max_steps
+    };
+  }
+
+  function demoAction(hub) {
+    const s = demoState;
+    const step = s.step;
+    if (step >= s.max_steps) return;
+    const incoming = s.incoming[step];
+    // apply drain to non-selected hubs
+    for (let i = 0; i < 3; i++) {
+      if (i !== hub) s.hub_loads[i] = Math.max(0, s.hub_loads[i] - s.drain_rates[i]);
+    }
+    // add incoming to selected hub
+    s.hub_loads[hub] = Math.min(120, s.hub_loads[hub] + incoming);
+    const overloaded = s.hub_loads.filter(l => l > 100).length;
+    if (overloaded > 0) s.bottlenecks++;
+    const balanceGap = Math.max(...s.hub_loads) - Math.min(...s.hub_loads);
+    const reward = Math.max(0, 1 - overloaded * 0.3 - balanceGap / 100);
+    s.score = (s.score * step + reward) / (step + 1);
+    s.step++;
+    const nextIncoming = step + 1 < s.incoming.length ? s.incoming[step + 1] : 0;
+    buildDemoObs(nextIncoming);
+    rewardHistory.push(reward);
+    log(`Step ${step+1}: → Hub ${hub} | reward ${reward.toFixed(3)} | ${obs.event_label}`, reward > 0.6 ? 'good' : reward > 0.3 ? 'warn' : 'bad');
+    selectedAction = null;
+    document.getElementById('act0').classList.remove('selected');
+    document.getElementById('act1').classList.remove('selected');
+    document.getElementById('act2').classList.remove('selected');
+    updateUI();
+    if (obs.done) {
+      log(`Episode complete! Final score: ${s.score.toFixed(3)}`, 'good');
+      document.getElementById('submitBtn').disabled = true;
+      stopAuto();
+    }
+  }
+
+  function sendActionWrapper() {
+    if (selectedAction === null) return;
+    if (demoMode) { demoAction(selectedAction); }
+    else { sendAction(); }
+  }
+  document.getElementById('submitBtn').onclick = sendActionWrapper;
+
+  // Auto-play: picks the lowest-loaded hub
+  function toggleAuto() {
+    if (autoInterval) { stopAuto(); return; }
+    const btn = document.getElementById('autoBtn');
+    btn.textContent = '⏸ Stop Auto';
+    btn.style.borderColor = 'var(--amber)';
+    btn.style.background = 'rgba(255,171,0,0.1)';
+    autoInterval = setInterval(() => {
+      if (!obs || obs.done) { stopAuto(); return; }
+      // Heuristic: pick lowest-loaded hub
+      const loads = obs.hub_loads;
+      let best = 0;
+      for (let i = 1; i < loads.length; i++) { if (loads[i] < loads[best]) best = i; }
+      selectAction(best);
+      if (demoMode) demoAction(best);
+      else sendAction();
+    }, 900);
+  }
+
+  function stopAuto() {
+    if (autoInterval) { clearInterval(autoInterval); autoInterval = null; }
+    const btn = document.getElementById('autoBtn');
+    btn.textContent = '▶ Auto Play';
+    btn.style.borderColor = 'var(--border)';
+    btn.style.background = 'var(--surface2)';
+  }
+
+  // ── UI ──
+  function selectAction(i) {
+    selectedAction = i;
+    for (let j = 0; j < 3; j++) {
+      document.getElementById(`act${j}`).classList.toggle('selected', j === i);
+    }
+    // highlight network line
+    for (let j = 0; j < 3; j++) {
+      const line = document.getElementById(`line${j}`);
+      line.setAttribute('stroke', j === i ? '#00d4ff' : '#1e2d45');
+      line.setAttribute('stroke-width', j === i ? '2.5' : '1.5');
+      line.setAttribute('marker-end', j === i ? 'url(#arrActive)' : 'url(#arr)');
+    }
+  }
+
+  function updateUI() {
+    if (!obs) return;
+    const loads = obs.hub_loads;
+    const drains = obs.drain_rates;
+
+    // Hub cards
+    for (let i = 0; i < 3; i++) {
+      const load = loads[i];
+      const pct = Math.min(load, 120);
+      document.getElementById(`hub${i}val`).childNodes[0].textContent = load.toFixed(1);
+      document.getElementById(`hub${i}drain`).textContent = `Drain: ${drains[i]}%/step`;
+      const source = obs.pending_source_node || 0;
+      const options = (obs.connectivity && obs.connectivity[String(source)]) || [];
+      const target = options[i];
+      const targetText = target !== undefined && obs.node_loads && obs.node_loads[target] !== undefined
+        ? `N${source}→N${target} ${obs.node_loads[target].toFixed(0)}`
+        : load.toFixed(1) + '%';
+      document.getElementById(`act${i}load`).textContent = targetText;
+
+      const bar = document.getElementById(`hub${i}bar`);
+      bar.style.width = Math.min(pct, 100) + '%';
+      bar.className = 'bar-fill ' + (load > 100 ? 'red' : load > 70 ? 'amber' : 'green');
+
+      const card = document.getElementById(`hub${i}`);
+      const badge = document.getElementById(`hub${i}badge`);
+      const nHub = document.getElementById(`netHub${i}`);
+      const nVal = document.getElementById(`netHub${i}val`);
+      nVal.textContent = load.toFixed(0) + '%';
+
+      if (load > 100) {
+        card.className = 'hub-card overloaded';
+        badge.className = 'hub-status-badge badge-critical';
+        badge.textContent = 'CRITICAL';
+        nHub.setAttribute('stroke', '#ff3d57');
+        nVal.setAttribute('fill', '#ff3d57');
+      } else if (load > 70) {
+        card.className = 'hub-card warning';
+        badge.className = 'hub-status-badge badge-warning';
+        badge.textContent = 'WARNING';
+        nHub.setAttribute('stroke', '#ffab00');
+        nVal.setAttribute('fill', '#ffab00');
+      } else {
+        card.className = 'hub-card optimal';
+        badge.className = 'hub-status-badge badge-optimal';
+        badge.textContent = 'OPTIMAL';
+        nHub.setAttribute('stroke', '#1e2d45');
+        nVal.setAttribute('fill', '#e8edf5');
+      }
+    }
+
+    // Incoming
+    document.getElementById('incomingVal').textContent = obs.incoming_load.toFixed(1) + '%';
+    document.getElementById('netIncoming').textContent = obs.incoming_load.toFixed(0);
+    document.getElementById('netScore').textContent = 'SCORE: ' + obs.cumulative_score.toFixed(2);
+
+    // Steps
+    const step = obs.step_count, max = obs.max_steps;
+    document.getElementById('stepCount').textContent = step;
+    document.getElementById('maxSteps').textContent = max;
+    document.getElementById('episodeBar').style.width = (step / max * 100) + '%';
+
+    // Event badge
+    const eb = document.getElementById('eventBadge');
+    const ev = obs.event_label || 'normal';
+    if (ev.includes('flash')) { eb.className = 'event-tag event-flash'; eb.textContent = '⚡ FLASH SALE'; }
+    else if (ev.includes('weather')) { eb.className = 'event-tag event-weather'; eb.textContent = '🌩 WEATHER'; }
+    else { eb.className = 'event-tag event-normal'; eb.textContent = '✓ NORMAL'; }
+
+    // Score arc (173 = half circumference of r=55 arc)
+    const score = obs.cumulative_score || 0;
+    document.getElementById('scoreArc').style.strokeDashoffset = 173 - (score * 173);
+    document.getElementById('scoreArc').style.stroke = score > 0.7 ? '#00e676' : score > 0.4 ? '#ffab00' : '#ff3d57';
+    document.getElementById('scoreNum').textContent = score.toFixed(2);
+
+    // Stats
+    const lr = obs.last_reward || 0;
+    const lrEl = document.getElementById('lastReward');
+    lrEl.textContent = lr.toFixed(3);
+    lrEl.className = 'stat-val ' + (lr > 0.6 ? 'green' : lr > 0.3 ? 'amber' : 'red');
+    document.getElementById('bottlenecks').textContent = obs.overloaded_hubs > 0 ? '⚠ ' + obs.overloaded_hubs : '0';
+    document.getElementById('overloaded').textContent = obs.overloaded_hubs;
+    document.getElementById('taskName').textContent = obs.task_id || '—';
+    document.getElementById('difficulty').textContent = (obs.difficulty || '—').toUpperCase();
+    document.getElementById('inTransit').textContent = (obs.in_transit_shipments || []).length;
+    document.getElementById('retailDelivered').textContent = (obs.retail_delivered || 0).toFixed(1);
+    document.getElementById('slaSuccess').textContent = ((obs.sla_success_rate || 0) * 100).toFixed(0) + '%';
+    document.getElementById('objective').textContent = obs.objective || '—';
+    document.getElementById('lastMsg').textContent = obs.message || '';
+
+    drawSparkline();
+  }
+
+  function drawSparkline() {
+    const canvas = document.getElementById('sparkline');
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.offsetWidth * 2;
+    canvas.height = 100;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (rewardHistory.length < 2) return;
+    const w = canvas.width, h = canvas.height;
+    const pad = 10;
+    const n = rewardHistory.length;
+    const xStep = (w - pad*2) / (n - 1);
+    ctx.beginPath();
+    ctx.strokeStyle = '#00d4ff';
+    ctx.lineWidth = 2;
+    ctx.shadowColor = '#00d4ff';
+    ctx.shadowBlur = 4;
+    rewardHistory.forEach((v, i) => {
+      const x = pad + i * xStep;
+      const y = h - pad - v * (h - pad*2);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    // Fill
+    ctx.shadowBlur = 0;
+    ctx.lineTo(pad + (n-1)*xStep, h-pad);
+    ctx.lineTo(pad, h-pad);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(0,212,255,0.08)';
+    ctx.fill();
+    // Dots
+    rewardHistory.forEach((v, i) => {
+      const x = pad + i * xStep;
+      const y = h - pad - v * (h - pad*2);
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, Math.PI*2);
+      ctx.fillStyle = v > 0.6 ? '#00e676' : v > 0.3 ? '#ffab00' : '#ff3d57';
+      ctx.fill();
+    });
+  }
+
+  function setStatus(online) {
+    document.getElementById('statusDot').className = 'dot' + (online ? ' live' : '');
+    document.getElementById('statusText').textContent = online ? 'LIVE' : 'OFFLINE';
+  }
+
+  function log(msg, type='info') {
+    const area = document.getElementById('logArea');
+    const now = new Date();
+    const time = now.toTimeString().slice(0,8);
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    entry.innerHTML = `<span class="log-time">${time}</span><span class="log-msg ${type}">${msg}</span>`;
+    area.appendChild(entry);
+    area.scrollTop = area.scrollHeight;
+  }
+
+  function clearLog() { document.getElementById('logArea').innerHTML = ''; }
+
+  // Default to the current app origin when served from FastAPI/HF Space.
+  if (window.location.protocol !== 'file:') {
+    document.getElementById('serverUrl').value = window.location.origin;
+  }
+
+  // Initial log
+  log('Visualizer ready. Enter your server URL and click Connect, or use Demo Mode.', 'info');
+  log('To start local server: cd crisis_logistics_env && uvicorn server.app:app --reload', 'info');
+</script>
+</body>
+</html>

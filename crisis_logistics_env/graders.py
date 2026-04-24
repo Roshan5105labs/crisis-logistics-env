@@ -17,24 +17,36 @@ class EpisodeMetrics:
     average_balance_gap: float
     throughput_served: float
     steps_completed: int
+    retail_delivered: float = 0.0
+    sla_success_rate: float = 0.0
+    disruption_recovery_score: float = 0.0
+    invalid_actions: int = 0
 
 
 def grade_episode(task: TaskConfig, metrics: EpisodeMetrics) -> float:
+    """Deterministic multi-component grader normalized to [0.0, 1.0]."""
+
     bottleneck_score = max(
         0.0,
-        1.0 - max(0, metrics.bottlenecks - task.target_bottlenecks) / max(1, task.max_steps / 4),
+        1.0 - max(0, metrics.bottlenecks - task.target_bottlenecks) / max(1, task.max_steps / 8),
     )
     balance_score = max(
         0.0,
-        1.0 - max(0.0, metrics.average_balance_gap - task.target_balance_gap) / 40.0,
+        1.0 - max(0.0, metrics.average_balance_gap - task.target_balance_gap) / 0.65,
     )
-    efficiency_score = min(1.0, metrics.average_reward / max(task.minimum_avg_reward, 0.01))
-    stability_score = metrics.optimal_steps / task.max_steps
+    reward_score = min(1.0, metrics.average_reward / max(task.minimum_avg_reward, 0.01))
+    delivery_score = min(1.0, metrics.retail_delivered / max(task.target_retail_delivery, 1.0))
+    sla_score = min(1.0, metrics.sla_success_rate / max(task.target_sla, 0.01))
+    recovery_score = max(0.0, min(1.0, metrics.disruption_recovery_score))
+    validity_score = max(0.0, 1.0 - metrics.invalid_actions / max(1, metrics.steps_completed))
 
     final_score = (
-        0.35 * bottleneck_score
-        + 0.25 * balance_score
-        + 0.20 * efficiency_score
-        + 0.20 * stability_score
+        0.18 * bottleneck_score
+        + 0.18 * balance_score
+        + 0.14 * reward_score
+        + 0.20 * delivery_score
+        + 0.15 * sla_score
+        + 0.10 * recovery_score
+        + 0.05 * validity_score
     )
     return round(max(0.0, min(1.0, final_score)), 3)

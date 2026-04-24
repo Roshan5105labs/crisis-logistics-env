@@ -1,118 +1,78 @@
 from __future__ import annotations
 
-import random
 from typing import Any
 
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
+try:
+    from .models import CrisisLogisticsAction
+    from .server.crisis_logistics_env_environment import CrisisLogisticsEnvironment
+except ImportError:
+    from models import CrisisLogisticsAction
+    from server.crisis_logistics_env_environment import CrisisLogisticsEnvironment
+
 
 class LogiFlowGymEnv(gym.Env):
-    """Gymnasium wrapper for the 3-hub logistics balancing problem."""
+    """Gymnasium wrapper for the 12-node delayed logistics benchmark."""
 
     metadata = {"render_modes": ["human"], "render_fps": 4}
 
-    def __init__(self, max_steps: int = 100):
+    def __init__(self, task_id: str = "easy"):
         super().__init__()
-        self.max_steps = max_steps
-        self.base_drain_rates = np.array([8.0, 7.0, 6.0], dtype=np.float32)
-        self.action_space = spaces.Discrete(3)
-        self.observation_space = spaces.Box(
-            low=np.array([0, 0, 0, 0, 0, 0, 0, 0], dtype=np.float32),
-            high=np.array([150, 150, 150, 20, 20, 20, 40, 2], dtype=np.float32),
-            dtype=np.float32,
+        self.task_id = task_id
+        self.env = CrisisLogisticsEnvironment()
+        self.action_space = spaces.Dict(
+            {
+                "source_node": spaces.Discrete(12),
+                "dest_node": spaces.Discrete(12),
+                "shipment_volume": spaces.Box(low=1.0, high=60.0, shape=(), dtype=np.float32),
+            }
         )
-        self.reset()
+        self.observation_space = spaces.Box(low=0.0, high=1.5, shape=(17,), dtype=np.float32)
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[np.ndarray, dict[str, Any]]:
-        super().reset(seed=seed)
-        if seed is not None:
-            random.seed(seed)
+        task_id = (options or {}).get("task_id", self.task_id)
+        self.observation = self.env.reset(seed=seed, task_id=task_id)
+        return self._flatten(self.observation), self._info()
 
-        self.hub_loads = np.array([24.0, 36.0, 30.0], dtype=np.float32)
-        self.drain_rates = self.base_drain_rates.copy()
-        self.step_count = 0
-        self.event_label = "normal"
-        self.incoming_load = self._sample_incoming_load()
-        return self._get_obs(), self._get_info(0.0)
-
-    def step(self, action: int):
-        self.step_count += 1
-
-        for idx in range(3):
-            if idx != action:
-                self.hub_loads[idx] = max(0.0, self.hub_loads[idx] - self.drain_rates[idx])
-
-        self.hub_loads[action] += self.incoming_load
-        reward = self._calculate_reward(action)
-
-        self.event_label = self._sample_event_label()
-        self.incoming_load = self._sample_incoming_load(self.event_label)
-
-        terminated = False
-        truncated = self.step_count >= self.max_steps
-        return self._get_obs(), reward, terminated, truncated, self._get_info(reward)
+    def step(self, action: dict[str, Any]):
+        env_action = CrisisLogisticsAction(
+            source_node=int(action["source_node"]),
+            dest_node=int(action["dest_node"]),
+            shipment_volume=float(action["shipment_volume"]),
+        )
+        self.observation = self.env.step(env_action)
+        terminated = bool(self.observation.done)
+        truncated = False
+        return self._flatten(self.observation), float(self.observation.reward or 0.0), terminated, truncated, self._info()
 
     def render(self):
         print(
-            f"step={self.step_count} loads={self.hub_loads.round(1).tolist()} "
-            f"incoming={self.incoming_load:.1f} event={self.event_label}"
+            f"step={self.env.step_count} score={self.env.score:.3f} "
+            f"retail={self.env.retail_delivered:.1f} transit={len(self.env.in_transit)}"
         )
 
-    def _get_obs(self) -> np.ndarray:
-        event_id = {"normal": 0.0, "weather_disruption": 1.0, "flash_sale": 2.0}[self.event_label]
-        return np.array(
-            [
-                self.hub_loads[0],
-                self.hub_loads[1],
-                self.hub_loads[2],
-                self.drain_rates[0],
-                self.drain_rates[1],
-                self.drain_rates[2],
-                self.incoming_load,
-                event_id,
-            ],
-            dtype=np.float32,
-        )
+    def _flatten(self, observation) -> np.ndarray:
+        util = list(observation.node_utilization[:12])
+        while len(util) < 12:
+            util.append(0.0)
+        extras = [
+            observation.incoming_load / 60.0,
+            len(observation.in_transit_shipments) / 25.0,
+            len(observation.active_disruptions) / 12.0,
+            observation.cumulative_score,
+            observation.step_count / max(observation.max_steps, 1),
+        ]
+        return np.array(util + extras, dtype=np.float32)
 
-    def _get_info(self, reward: float) -> dict[str, Any]:
+    def _info(self) -> dict[str, Any]:
         return {
-            "reward": reward,
-            "overloaded_hubs": int(np.sum(self.hub_loads > 100.0)),
-            "event_label": self.event_label,
+            "score": self.env.score,
+            "bottlenecks": self.env.bottlenecks,
+            "retail_delivered": self.env.retail_delivered,
+            "sla_success_rate": self.env._sla_success_rate(),
         }
-
-    def _sample_event_label(self) -> str:
-        roll = random.random()
-        if roll < 0.15:
-            return "flash_sale"
-        if roll < 0.25:
-            return "weather_disruption"
-        return "normal"
-
-    def _sample_incoming_load(self, event_label: str | None = None) -> float:
-        label = event_label or self.event_label
-        if label == "flash_sale":
-            return random.uniform(16.0, 24.0)
-        if label == "weather_disruption":
-            return random.uniform(11.0, 18.0)
-        return random.uniform(6.0, 12.0)
-
-    def _calculate_reward(self, action: int) -> float:
-        reward = 0.5
-        target_load = self.hub_loads[action]
-
-        if 30.0 <= target_load <= 70.0:
-            reward += 5.0
-        else:
-            reward -= min(abs(target_load - 50.0) / 15.0, 4.0)
-
-        if target_load > 100.0:
-            reward -= 20.0
-
-        reward -= float(np.max(self.hub_loads) - np.min(self.hub_loads)) / 50.0
-        reward -= float(np.sum(self.hub_loads > 100.0)) * 3.0
-        return round(reward, 2)

@@ -21,7 +21,7 @@ class CrisisLogisticsEnv(
     """Thin client that talks to the HTTP or WebSocket server."""
 
     def _step_payload(self, action: CrisisLogisticsAction) -> Dict:
-        return {"target_hub": action.target_hub}
+        return action.model_dump(exclude_none=True)
 
     def _parse_result(self, payload: Dict) -> StepResult[CrisisLogisticsObservation]:
         obs_data = payload.get("observation", {})
@@ -39,6 +39,24 @@ class CrisisLogisticsEnv(
             last_reward=obs_data.get("last_reward", 0.0),
             event_label=obs_data.get("event_label", "normal"),
             message=obs_data.get("message", ""),
+            node_names=obs_data.get("node_names", []),
+            node_types=obs_data.get("node_types", []),
+            node_loads=obs_data.get("node_loads", []),
+            node_capacities=obs_data.get("node_capacities", []),
+            node_utilization=obs_data.get("node_utilization", []),
+            node_drain_rates=obs_data.get("node_drain_rates", []),
+            node_risk_scores=obs_data.get("node_risk_scores", []),
+            connectivity=obs_data.get("connectivity", {}),
+            visible_node_ids=obs_data.get("visible_node_ids", []),
+            observed_node_loads=obs_data.get("observed_node_loads", []),
+            visible_connectivity=obs_data.get("visible_connectivity", {}),
+            in_transit_shipments=obs_data.get("in_transit_shipments", []),
+            active_disruptions=obs_data.get("active_disruptions", []),
+            reward_breakdown=obs_data.get("reward_breakdown", {}),
+            last_action=obs_data.get("last_action", {}),
+            pending_source_node=obs_data.get("pending_source_node", 0),
+            retail_delivered=obs_data.get("retail_delivered", 0.0),
+            sla_success_rate=obs_data.get("sla_success_rate", 0.0),
             reward=payload.get("reward"),
             done=payload.get("done", False),
             metadata=obs_data.get("metadata", {}),
@@ -60,4 +78,10 @@ class CrisisLogisticsEnv(
             incoming_index=payload.get("incoming_index", 0),
             bottlenecks=payload.get("bottlenecks", 0),
             score=payload.get("score", 0.0),
+            node_loads=payload.get("node_loads", []),
+            node_utilization=payload.get("node_utilization", []),
+            in_transit_count=payload.get("in_transit_count", 0),
+            active_disruptions=payload.get("active_disruptions", []),
+            retail_delivered=payload.get("retail_delivered", 0.0),
+            sla_success_rate=payload.get("sla_success_rate", 0.0),
         )
