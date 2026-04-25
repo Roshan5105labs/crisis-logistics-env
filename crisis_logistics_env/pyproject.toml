@@ -9,7 +9,7 @@ requires = ["setuptools>=45", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "openenv-crisis_logistics_env"
+name = "crisis_logistics_env"
 version = "0.1.0"
 description = "LogiFlow-RL environment for OpenEnv"
 requires-python = ">=3.10"
