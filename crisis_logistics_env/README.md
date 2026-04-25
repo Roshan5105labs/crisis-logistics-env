@@ -1,18 +1,18 @@
 ---
 title: LogiFlow-RL
-emoji: ":truck:"
+emoji: "⭐"
 colorFrom: blue
 colorTo: green
 sdk: docker
 app_port: 8000
 pinned: false
 ---
-# LogiFlow-RL â€” Smart Supply Chain Crisis Management
+# LogiFlow-RL Ã¢â‚¬â€ Smart Supply Chain Crisis Management
 
-> **Training an LLM to route shipments proactively across a 12-node global supply chain â€” before disruptions cascade, not after.**
+> **Training an LLM to route shipments proactively across a 12-node global supply chain Ã¢â‚¬â€ before disruptions cascade, not after.**
 
 [![OpenEnv](https://img.shields.io/badge/OpenEnv-compliant-blue)](https://github.com/meta-pytorch/OpenEnv)
-[![HuggingFace Space](https://img.shields.io/badge/ðŸ¤—%20Space-Live-green)](https://huggingface.co/spaces/<your-space-url>)
+[![HuggingFace Space](https://img.shields.io/badge/Ã°Å¸Â¤â€”%20Space-Live-green)](https://huggingface.co/spaces/<your-space-url>)
 [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Roshan5105labs/crisis-logistics-env/blob/main/notebooks/logiflow_grpo_colab.ipynb)
 [![Theme](https://img.shields.io/badge/Theme-Long--Horizon%20Planning-purple)](https://github.com/meta-pytorch/OpenEnv)
 
@@ -21,13 +21,13 @@ pinned: false
 ## The Problem
 
 The 2021 Suez Canal blockage held up **$9 billion of goods every day**. Every major retailer missed
-delivery SLAs that quarter. The root cause was not the blockage itself â€” it was that routing systems
-identified the disruption **after** the cascade had already propagated: port backed up â†’ upstream
-warehouses overloaded â†’ supplier shipments stalled â†’ retail shelves empty.
+delivery SLAs that quarter. The root cause was not the blockage itself Ã¢â‚¬â€ it was that routing systems
+identified the disruption **after** the cascade had already propagated: port backed up Ã¢â€ â€™ upstream
+warehouses overloaded Ã¢â€ â€™ supplier shipments stalled Ã¢â€ â€™ retail shelves empty.
 
 Modern logistics software is fundamentally **reactive**. It alerts managers when things have already
-gone wrong. What the industry needs is an agent that can read early warning signals â€” rising node
-loads, congestion trends, disruption probability â€” and reroute **before** the cascade.
+gone wrong. What the industry needs is an agent that can read early warning signals Ã¢â‚¬â€ rising node
+loads, congestion trends, disruption probability Ã¢â‚¬â€ and reroute **before** the cascade.
 
 This is what LogiFlow-RL trains.
 
@@ -41,11 +41,11 @@ GRPO to act as a proactive logistics crisis manager: observing partial network s
 about disruption trajectories, and routing shipments to prevent overloads before they cascade.
 
 ```
-Suppliers â†’ Warehouses â†’ Distribution Centres â†’ Retail Sinks
-    4      â†’      3     â†’         3            â†’      2
+Suppliers Ã¢â€ â€™ Warehouses Ã¢â€ â€™ Distribution Centres Ã¢â€ â€™ Retail Sinks
+    4      Ã¢â€ â€™      3     Ã¢â€ â€™         3            Ã¢â€ â€™      2
 ```
 
-The environment is **genuinely hard to solve** â€” a round-robin baseline scores only 0.469 average
+The environment is **genuinely hard to solve** Ã¢â‚¬â€ a round-robin baseline scores only 0.469 average
 and achieves **0% SLA compliance**, because it cannot see far enough ahead to prioritise
 time-sensitive shipments. Even a well-designed heuristic struggles on cascade scenarios.
 
@@ -61,7 +61,7 @@ time-sensitive shipments. Even a well-designed heuristic struggles on cascade sc
 | Reactive reasoning | Anticipatory planning under uncertainty |
 
 > **Research framing:** Could a researcher write a paper about training on this environment?
-> Yes â€” it targets long-horizon planning under partial observability with delayed reward signals,
+> Yes Ã¢â‚¬â€ it targets long-horizon planning under partial observability with delayed reward signals,
 > a recognised capability gap in current LLM architectures.
 
 ---
@@ -71,27 +71,27 @@ time-sensitive shipments. Even a well-designed heuristic struggles on cascade sc
 ### Network Topology (12 nodes, 4 tiers)
 
 ```
- [Node 0] Supplier North â”€â”€â”
- [Node 1] Supplier West  â”€â”€â”¼â”€â”€â–º [Node 4] Warehouse Alpha â”€â”€â–º [Node 7] DC Metro    â”€â”€â–º [Node 10] Retail North
- [Node 2] Supplier Port  â”€â”€â”¼â”€â”€â–º [Node 5] Warehouse Beta  â”€â”€â–º [Node 8] DC Central  â”€â”€â–º           â†•
- [Node 3] Supplier Inlandâ”€â”€â”˜â”€â”€â–º [Node 6] Warehouse Gamma â”€â”€â–º [Node 9] DC Coastal  â”€â”€â–º [Node 11] Retail South
+ [Node 0] Supplier North Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€Â
+ [Node 1] Supplier West  Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€Â¼Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€“Âº [Node 4] Warehouse Alpha Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€“Âº [Node 7] DC Metro    Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€“Âº [Node 10] Retail North
+ [Node 2] Supplier Port  Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€Â¼Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€“Âº [Node 5] Warehouse Beta  Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€“Âº [Node 8] DC Central  Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€“Âº           Ã¢â€ â€¢
+ [Node 3] Supplier InlandÃ¢â€â‚¬Ã¢â€â‚¬Ã¢â€ËœÃ¢â€â‚¬Ã¢â€â‚¬Ã¢â€“Âº [Node 6] Warehouse Gamma Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€“Âº [Node 9] DC Coastal  Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€“Âº [Node 11] Retail South
 ```
 
 Every node has: **capacity**, **current load**, **drain rate**, **risk score**, and
-**typed connections** to downstream nodes. Freight takes **2â€“4 steps** to transit
-between nodes â€” the agent must plan ahead, not just react.
+**typed connections** to downstream nodes. Freight takes **2Ã¢â‚¬â€œ4 steps** to transit
+between nodes Ã¢â‚¬â€ the agent must plan ahead, not just react.
 
 ### What Makes This Hard
 
 **1. Partial observability.** The agent sees only nodes within 2 hops of the current
 shipment source. Nodes beyond that radius appear as `null` in the observation. The agent
-must infer hidden network state from what flows downstream â€” exactly like a real logistics
+must infer hidden network state from what flows downstream Ã¢â‚¬â€ exactly like a real logistics
 manager working from regional reports, not a global dashboard.
 
 **2. Stochastic cascade disruptions.** Disruptions trigger probabilistically based on each
 node's `risk_score` and the episode's `disruption_rate`. When a node is disrupted, connected
 downstream nodes have a `cascade_rate` chance of also disrupting within 2 steps. These
-cascades cannot be predicted or memorised â€” they require genuine situational reasoning.
+cascades cannot be predicted or memorised Ã¢â‚¬â€ they require genuine situational reasoning.
 
 **3. Priority-demand windows.** Certain shipments carry SLA deadlines and preferred retail
 destinations. Missing a priority window is penalised proportionally to how late the delivery
@@ -99,7 +99,7 @@ arrives. The agent must balance general throughput against time-sensitive commit
 
 **4. Dynamic pressure feedback.** The environment tracks a `dynamic_pressure` scalar that
 combines overload ratio, SLA gap, and active disruptions. This pressure feeds back into
-disruption probability and effective shipment volumes â€” creating a self-reinforcing difficulty
+disruption probability and effective shipment volumes Ã¢â‚¬â€ creating a self-reinforcing difficulty
 that rewards proactive management.
 
 ### Three Difficulty Tiers
@@ -123,7 +123,7 @@ At each step the agent receives a natural language observation and must output:
 }
 ```
 
-The `reasoning` field is not just cosmetic â€” it is **required** by the reward function and
+The `reasoning` field is not just cosmetic Ã¢â‚¬â€ it is **required** by the reward function and
 is what judges and users actually see when demonstrating the trained model.
 
 ### Observation Space
@@ -174,7 +174,7 @@ The GRPO training reward is a 5-component verifiable reward:
 | Required keys | 0.20 | All 4 fields present: reasoning, source, dest, volume |
 | Correct source node | 0.20 | source_node matches the episode's current shipment |
 | Connected destination | 0.25 | dest_node is a legal neighbour of source_node |
-| Plausible volume | 0.15 | 0 < shipment_volume â‰¤ 60 and close to incoming load |
+| Plausible volume | 0.15 | 0 < shipment_volume Ã¢â€°Â¤ 60 and close to incoming load |
 
 ### Anti-Gaming Guards
 
@@ -182,22 +182,22 @@ The GRPO training reward is a 5-component verifiable reward:
 - **Route-repeat penalty** for consecutive identical routing decisions
 - **Risk penalty** for routing through actively disrupted nodes
 - **Overload penalty** applied even if JSON format is perfect
-- All reward components are **independent** â€” gaming one does not inflate others
+- All reward components are **independent** Ã¢â‚¬â€ gaming one does not inflate others
 
 ---
 
 ## Training
 
-### Method: SFT Warm-Up â†’ GRPO
+### Method: SFT Warm-Up Ã¢â€ â€™ GRPO
 
 Training uses a two-phase approach:
 
-**Phase 1 â€” SFT Warm-Up (20 steps)**
+**Phase 1 Ã¢â‚¬â€ SFT Warm-Up (20 steps)**
 Qwen2.5-0.5B-Instruct does not reliably output valid JSON from a cold start. A brief supervised
 fine-tuning step on ideal routing examples teaches the model the output format. Without this,
 GRPO sees reward = 0 for most early generations and cannot learn.
 
-**Phase 2 â€” GRPO (200 steps)**
+**Phase 2 Ã¢â‚¬â€ GRPO (200 steps)**
 Starting from the SFT checkpoint, GRPO optimises the model against the verifiable reward function.
 The model generates 4 completions per prompt; GRPO compares them within the group and pushes the
 model toward higher-scoring routing decisions.
@@ -205,7 +205,7 @@ model toward higher-scoring routing decisions.
 ### Training Stack
 
 ```
-OpenEnv environment â†’ live rollout prompts â†’ TRL GRPOTrainer
+OpenEnv environment Ã¢â€ â€™ live rollout prompts Ã¢â€ â€™ TRL GRPOTrainer
                                               + Unsloth (QLoRA r=16)
                                               + Qwen2.5-0.5B-Instruct
 ```
@@ -213,7 +213,7 @@ OpenEnv environment â†’ live rollout prompts â†’ TRL GRPOTrainer
 | Parameter | Value |
 |-----------|-------|
 | Base model | `Qwen/Qwen2.5-0.5B-Instruct` |
-| Adapter | LoRA r=16, Î±=32 |
+| Adapter | LoRA r=16, ÃŽÂ±=32 |
 | Optimiser | GRPO via TRL |
 | Max steps | 200 |
 | Generations per prompt | 4 |
@@ -236,7 +236,7 @@ The table below shows three hand-coded baselines evaluated on all three tasks
 | **Heuristic** | 0.782 | 100.0% | 6.6% | 3.3 |
 | **Resilient** | 0.776 | 100.0% | 4.3% | 3.0 |
 
-**Key insight:** Round-robin achieves 0% SLA success rate despite reasonable step rewards â€”
+**Key insight:** Round-robin achieves 0% SLA success rate despite reasonable step rewards Ã¢â‚¬â€
 because it ignores delivery deadlines entirely. Heuristic achieves 100% SLA but still
 fails on priority service (6.6%) and produces invalid actions under disruption.
 The trained GRPO model targets both gaps.
@@ -262,8 +262,8 @@ the model starts producing valid JSON immediately and reward climbs from the fir
 (after GRPO). Blue bars = base model (before GRPO). Amber bars = heuristic baseline.*
 
 ![Metrics Panel](artifacts/metrics_panel.png)
-*Figure 3: Detailed metrics breakdown â€” overall score, SLA rate, retail delivered, invalid
-actions, and bottlenecks â€” for all three policies across all three tasks.*
+*Figure 3: Detailed metrics breakdown Ã¢â‚¬â€ overall score, SLA rate, retail delivered, invalid
+actions, and bottlenecks Ã¢â‚¬â€ for all three policies across all three tasks.*
 
 ---
 
@@ -290,7 +290,7 @@ Model output:
 ```
 
 The heuristic would route to the nearest available node. The trained model routes to the
-node that minimises cascade probability â€” a fundamentally different reasoning pattern.
+node that minimises cascade probability Ã¢â‚¬â€ a fundamentally different reasoning pattern.
 
 ---
 
@@ -347,7 +347,7 @@ The environment is served as a FastAPI application and is fully OpenEnv-complian
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/health` | GET | Returns `{"status": "healthy"}` â€” judges use this to verify the Space is live |
+| `/health` | GET | Returns `{"status": "healthy"}` Ã¢â‚¬â€ judges use this to verify the Space is live |
 | `/reset` | POST | Start a new episode. Body: `{"task_id": "easy"}` |
 | `/step` | POST | Take one action. Body: `{"action": {"source_node": 2, "dest_node": 5, "shipment_volume": 18.5}}` |
 | `/state` | GET | Full internal state (all 12 nodes visible, no partial observability) |
@@ -360,28 +360,28 @@ The environment is served as a FastAPI application and is fully OpenEnv-complian
 
 ```
 crisis_logistics_env/
-â”œâ”€â”€ models.py                          # Action, Observation, State dataclasses
-â”œâ”€â”€ tasks.py                           # Task configs (easy / medium / hard)
-â”œâ”€â”€ graders.py                         # 7-component episode grader (0.0â€“1.0)
-â”œâ”€â”€ train_grpo.py                      # Production GRPO training script
-â”œâ”€â”€ inference.py                       # LLM agent loop (Qwen-72B via HF router)
-â”œâ”€â”€ train_and_evaluate.py              # Baseline policy evaluation
-â”œâ”€â”€ gym_env.py                         # gymnasium.Env wrapper
-â”œâ”€â”€ client.py                          # HTTP client for server
-â”œâ”€â”€ server/
-â”‚   â”œâ”€â”€ app.py                         # FastAPI server (7 endpoints)
-â”‚   â””â”€â”€ crisis_logistics_env_environment.py  # World simulation engine
-â”œâ”€â”€ visualisation/
-â”‚   â””â”€â”€ logiflow_visualizer.html       # Live dashboard (served at /web)
-â”œâ”€â”€ notebooks/
-â”‚   â””â”€â”€ logiflow_grpo_colab.ipynb      # Reproducible training notebook
-â”œâ”€â”€ artifacts/
-â”‚   â”œâ”€â”€ benchmark_summary.json         # Baseline policy results
-â”‚   â”œâ”€â”€ reward_curve.png               # GRPO training curve
-â”‚   â”œâ”€â”€ before_after_comparison.png    # Policy comparison chart
-â”‚   â””â”€â”€ metrics_panel.png             # Detailed metrics breakdown
-â”œâ”€â”€ openenv.yaml                       # OpenEnv manifest
-â””â”€â”€ Dockerfile                         # HuggingFace Space deployment
+Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ models.py                          # Action, Observation, State dataclasses
+Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ tasks.py                           # Task configs (easy / medium / hard)
+Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ graders.py                         # 7-component episode grader (0.0Ã¢â‚¬â€œ1.0)
+Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ train_grpo.py                      # Production GRPO training script
+Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ inference.py                       # LLM agent loop (Qwen-72B via HF router)
+Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ train_and_evaluate.py              # Baseline policy evaluation
+Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ gym_env.py                         # gymnasium.Env wrapper
+Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ client.py                          # HTTP client for server
+Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ server/
+Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ app.py                         # FastAPI server (7 endpoints)
+Ã¢â€â€š   Ã¢â€â€Ã¢â€â‚¬Ã¢â€â‚¬ crisis_logistics_env_environment.py  # World simulation engine
+Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ visualisation/
+Ã¢â€â€š   Ã¢â€â€Ã¢â€â‚¬Ã¢â€â‚¬ logiflow_visualizer.html       # Live dashboard (served at /web)
+Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ notebooks/
+Ã¢â€â€š   Ã¢â€â€Ã¢â€â‚¬Ã¢â€â‚¬ logiflow_grpo_colab.ipynb      # Reproducible training notebook
+Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ artifacts/
+Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ benchmark_summary.json         # Baseline policy results
+Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ reward_curve.png               # GRPO training curve
+Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ before_after_comparison.png    # Policy comparison chart
+Ã¢â€â€š   Ã¢â€â€Ã¢â€â‚¬Ã¢â€â‚¬ metrics_panel.png             # Detailed metrics breakdown
+Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ openenv.yaml                       # OpenEnv manifest
+Ã¢â€â€Ã¢â€â‚¬Ã¢â€â‚¬ Dockerfile                         # HuggingFace Space deployment
 ```
 
 ---
@@ -390,17 +390,17 @@ crisis_logistics_env/
 
 | Resource | Link |
 |----------|------|
-| ðŸ¤— HuggingFace Space (live environment) | [Add your Space URL] |
-| ðŸ““ Colab Training Notebook | [Add your Colab URL] |
-| ðŸ“ HuggingFace Blog Post | [Add your blog URL] |
-| ðŸŽ¥ Demo Video | [Add your YouTube URL] |
+| Ã°Å¸Â¤â€” HuggingFace Space (live environment) | [Add your Space URL] |
+| Ã°Å¸â€œâ€œ Colab Training Notebook | [Add your Colab URL] |
+| Ã°Å¸â€œÂ HuggingFace Blog Post | [Add your blog URL] |
+| Ã°Å¸Å½Â¥ Demo Video | [Add your YouTube URL] |
 
 ---
 
 ## Why This Matters
 
 Supply chain disruption costs the global economy an estimated **$1.5 trillion annually**.
-The gap is not infrastructure â€” it is decision-making speed and anticipatory reasoning.
+The gap is not infrastructure Ã¢â‚¬â€ it is decision-making speed and anticipatory reasoning.
 
 An LLM trained on LogiFlow-RL learns to:
 - Read congestion signals before they become bottlenecks
@@ -408,7 +408,7 @@ An LLM trained on LogiFlow-RL learns to:
 - Anticipate cascade effects from disruptions it cannot directly observe
 - Balance competing priorities: throughput, SLA compliance, and network stability
 
-This environment exists to teach LLMs something they currently cannot do well â€” and to
+This environment exists to teach LLMs something they currently cannot do well Ã¢â‚¬â€ and to
 prove that teaching is measurable.
 
 ---
@@ -420,12 +420,13 @@ prove that teaching is measurable.
   title        = {LogiFlow-RL: Training LLMs for Proactive Supply Chain Crisis Management},
   author       = {Your Name},
   year         = {2026},
-  howpublished = {OpenEnv Hackathon India 2026 â€” Theme \#2: Long-Horizon Planning},
+  howpublished = {OpenEnv Hackathon India 2026 Ã¢â‚¬â€ Theme \#2: Long-Horizon Planning},
   url          = {https://huggingface.co/spaces/<your-space-url>}
 }
 ```
 
 ---
 
-*Submitted to the Meta Ã— PyTorch Ã— OpenEnv Ã— Scaler Hackathon India 2026 â€” Theme #2: Long-Horizon Planning & Instruction Following*
+*Submitted to the Meta Ãƒâ€” PyTorch Ãƒâ€” OpenEnv Ãƒâ€” Scaler Hackathon India 2026 Ã¢â‚¬â€ Theme #2: Long-Horizon Planning & Instruction Following*
+
 
