@@ -50,7 +50,7 @@ except ImportError:
 
 app = FastAPI(
     title="OpenEnv Environment HTTP API",
-    version="1.0.0",
+    version="1.1.0",
     description=(
         "HTTP API for interacting with the LogiFlow-RL environment through "
         "a standardized OpenEnv-style interface."
@@ -139,8 +139,11 @@ async def get_state() -> CrisisLogisticsState:
 async def get_metadata() -> EnvironmentMetadata:
     return EnvironmentMetadata(
         name="LogiFlow-RL",
-        description="Deterministic logistics routing benchmark with easy, medium, and hard tasks.",
-        version="1.0.0",
+        description=(
+            "Adaptive logistics routing benchmark with dynamic pressure, priority demand, "
+            "and multi-component verifiable rewards."
+        ),
+        version="1.1.0",
     )
 
 

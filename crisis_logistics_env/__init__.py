@@ -10,6 +10,7 @@ from .client import CrisisLogisticsEnv
 from .graders import EpisodeMetrics, grade_episode
 from .gym_env import LogiFlowGymEnv
 from .models import CrisisLogisticsAction, CrisisLogisticsObservation, CrisisLogisticsState
+from .server import choose_network_action, choose_resilient_action
 from .tasks import get_task, list_tasks
 
 __all__ = [
@@ -20,6 +21,8 @@ __all__ = [
     "LogiFlowGymEnv",
     "EpisodeMetrics",
     "grade_episode",
+    "choose_network_action",
+    "choose_resilient_action",
     "get_task",
     "list_tasks",
 ]

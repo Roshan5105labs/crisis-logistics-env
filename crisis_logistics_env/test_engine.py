@@ -3,6 +3,7 @@ import asyncio
 from server.crisis_logistics_env_environment import (
     CrisisLogisticsEnvironment,
     choose_network_action,
+    choose_resilient_action,
 )
 
 
@@ -32,8 +33,21 @@ async def test_run():
     print(f"Reward Breakdown: {obs.reward_breakdown}")
     print(f"Reward Received: {obs.reward}")
     print(f"Current Score: {obs.cumulative_score}")
+    print(f"Dynamic Pressure: {obs.dynamic_pressure}")
+    print(f"Priority Target: {obs.priority_target_name} (node {obs.priority_target_node})")
+    print(f"Priority Service Rate: {obs.priority_service_rate}")
     print(f"Next Incoming Load: {obs.incoming_load}")
     print(f"Message: {obs.message}")
+
+    resilient_action = choose_resilient_action(obs)
+    print(
+        f"\n[RESILIENT] Routes {resilient_action.shipment_volume} units "
+        f"from node {resilient_action.source_node} to node {resilient_action.dest_node}..."
+    )
+    obs = env.step(resilient_action)
+    print(f"Reward Breakdown: {obs.reward_breakdown}")
+    print(f"Reward Received: {obs.reward}")
+    print(f"Current Score: {obs.cumulative_score}")
 
 
 if __name__ == "__main__":

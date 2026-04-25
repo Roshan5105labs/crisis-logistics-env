@@ -1,6 +1,5 @@
 import os
 import json
-import re
 from typing import List, Optional
 
 from openai import OpenAI
@@ -9,14 +8,14 @@ try:
     from crisis_logistics_env import CrisisLogisticsAction
     from crisis_logistics_env.server.crisis_logistics_env_environment import (
         CrisisLogisticsEnvironment,
-        choose_network_action,
+        choose_resilient_action,
     )
     from crisis_logistics_env.tasks import list_tasks
 except ImportError:
     from models import CrisisLogisticsAction
     from server.crisis_logistics_env_environment import (
         CrisisLogisticsEnvironment,
-        choose_network_action,
+        choose_resilient_action,
     )
     from tasks import list_tasks
 
@@ -69,6 +68,10 @@ def build_user_prompt(observation, task_title: str) -> str:
         f"In-transit shipments: {observation.in_transit_shipments[:8]}\n"
         f"Incoming shipment: source={observation.pending_source_node}, volume={observation.incoming_load}\n"
         f"Traffic event: {observation.event_label}\n"
+        f"Dynamic pressure: {observation.dynamic_pressure}\n"
+        f"Priority target node: {observation.priority_target_node} ({observation.priority_target_name})\n"
+        f"Adaptive disruption rate: {observation.adaptive_disruption_rate}\n"
+        f"Priority service rate: {observation.priority_service_rate}\n"
         f"Current score: {observation.cumulative_score:.3f}\n"
         "Return one compact JSON object only."
     )
@@ -85,10 +88,23 @@ def choose_action_with_model(client: OpenAI, prompt: str) -> CrisisLogisticsActi
         ],
     )
     text = (response.choices[0].message.content or "").strip()
-    match = re.search(r"\{.*\}", text, re.DOTALL)
-    if match:
-        payload = json.loads(match.group(0))
-        return CrisisLogisticsAction(**payload)
+    decoder = json.JSONDecoder()
+    candidates = []
+    for idx, char in enumerate(text):
+        if char != "{":
+            continue
+        try:
+            payload, _ = decoder.raw_decode(text[idx:])
+        except Exception:
+            continue
+        if isinstance(payload, dict):
+            candidates.append(payload)
+    if candidates:
+        required = {"reasoning", "source_node", "dest_node", "shipment_volume"}
+        for payload in reversed(candidates):
+            if required.issubset(payload.keys()):
+                return CrisisLogisticsAction(**payload)
+        return CrisisLogisticsAction(**candidates[-1])
     raise ValueError(f"invalid_model_output:{text}")
 
 
@@ -106,7 +122,7 @@ def run_task(task_id: str, client: Optional[OpenAI]) -> float:
 
     try:
         while not observation.done and observation.step_count < max_steps:
-            action = choose_network_action(observation)
+            action = choose_resilient_action(observation)
             if client is not None:
                 prompt = build_user_prompt(observation, env.task.title)
                 try:

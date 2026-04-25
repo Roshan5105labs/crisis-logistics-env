@@ -88,6 +88,30 @@ class CrisisLogisticsObservation(Observation):
         default="normal",
         description="Current network condition, e.g. normal, port_closure, or supplier_failure.",
     )
+    dynamic_pressure: float = Field(
+        default=0.0,
+        description="Adaptive stress estimate in [0, 1] driven by congestion, SLA risk, and delivery shortfall.",
+    )
+    adaptive_disruption_rate: float = Field(
+        default=0.0,
+        description="Effective disruption probability after adaptive pressure scaling.",
+    )
+    priority_target_node: int = Field(
+        default=10,
+        description="Retail node that should receive urgent demand in the current step window.",
+    )
+    priority_target_name: str = Field(
+        default="Retail North",
+        description="Human-readable name for the active priority retail target.",
+    )
+    priority_queue_depth: int = Field(
+        default=0,
+        description="Number of in-transit urgent shipments still pending completion.",
+    )
+    priority_service_rate: float = Field(
+        default=0.0,
+        description="Fraction of urgent shipments delivered on target and within SLA.",
+    )
     message: str = Field(default="", description="Human-readable state summary.")
 
     node_names: List[str] = Field(default_factory=list, description="Names for all network nodes.")
@@ -151,3 +175,7 @@ class CrisisLogisticsState(State):
     active_disruptions: List[Dict[str, Any]] = Field(default_factory=list, description="Active disruptions.")
     retail_delivered: float = Field(default=0.0, description="Total retail-arrived volume.")
     sla_success_rate: float = Field(default=0.0, description="Fraction of retail deliveries within SLA.")
+    dynamic_pressure: float = Field(default=0.0, description="Current adaptive network pressure in [0, 1].")
+    adaptive_disruption_rate: float = Field(default=0.0, description="Effective disruption probability this step.")
+    priority_target_node: int = Field(default=10, description="Retail node targeted for urgent demand.")
+    priority_service_rate: float = Field(default=0.0, description="Urgent shipment success rate.")

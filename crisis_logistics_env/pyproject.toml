@@ -10,14 +10,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "crisis_logistics_env"
-version = "0.1.0"
+version = "0.2.0"
 description = "LogiFlow-RL environment for OpenEnv"
 requires-python = ">=3.10"
 dependencies = [
     # Core OpenEnv runtime (provides FastAPI server + HTTP client types)
     # install from github
     # "openenv-core[core] @ git+https://github.com/meta-pytorch/OpenEnv.git",
-    "openenv-core[core]>=0.2.2",
+    "openenv-core[core]>=0.2.3",
     # Environment-specific dependencies
     # Add all dependencies needed for your environment here
     # Examples:
@@ -35,11 +35,23 @@ dev = [
     "pytest>=8.0.0",
     "pytest-cov>=4.0.0",
 ]
+train = [
+    "torch>=2.2.0",
+    "trl>=1.0.0",
+    "transformers>=4.48.0",
+    "datasets>=3.0.0",
+    "peft>=0.12.0",
+    "accelerate>=0.34.0",
+    "pandas>=2.0.0",
+    "matplotlib>=3.8.0",
+]
 
 [project.scripts]
 # Server entry point - enables running via: uv run --project . server
 # or: python -m crisis_logistics_env.server.app
 server = "crisis_logistics_env.server.app:main"
+train-eval = "crisis_logistics_env.train_and_evaluate:main"
+train-grpo = "crisis_logistics_env.train_grpo:main"
 
 [tool.setuptools]
 include-package-data = true

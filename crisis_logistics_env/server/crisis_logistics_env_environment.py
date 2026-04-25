@@ -35,6 +35,9 @@ class TransitShipment:
     deadline_step: int
     started_step: int
     event_label: str
+    priority: int = 0
+    preferred_retail: int = 10
+    priority_window_step: int = 0
 
 
 @dataclass
@@ -90,10 +93,24 @@ class CrisisLogisticsEnvironment(
         self.sla_deliveries = 0
         self.total_retail_deliveries = 0
         self.recovery_history: List[float] = []
+        self.rolling_rewards: List[float] = []
 
-        current = self._current_shipment()
+        self.dynamic_pressure = 0.0
+        self.adaptive_disruption_rate = self.task.disruption_rate
+        self.route_repeat_streak = 0
+        self.recent_routes: List[tuple[int, int]] = []
+
+        self.priority_shipments_total = 0
+        self.priority_shipments_served = 0
+        self.priority_backlog = 0
+        self.current_priority_target = 10
+        self.current_priority_window = 0
+
+        current = self._effective_shipment(self._current_shipment())
         self.incoming_load = current.volume
         self.event_label = current.event_hint
+        self.current_priority_target = current.preferred_retail
+        self.current_priority_window = current.priority_window_steps
         return self._get_observation(
             f"Task '{self.task.title}' initialized on a 12-node supply-chain network."
         )
@@ -106,15 +123,20 @@ class CrisisLogisticsEnvironment(
             observation.reward = 0.0
             return observation
 
-        current = self._current_shipment()
+        current = self._effective_shipment(self._current_shipment())
         self.event_label = current.event_hint
         self.incoming_load = current.volume
+        self.current_priority_target = current.preferred_retail
+        self.current_priority_window = current.priority_window_steps
         self.step_count += 1
 
         self._maybe_start_disruption(current)
         self.node_loads[current.source_node] += current.volume
 
         resolved_action, valid, invalid_reason = self._resolve_action(action, current)
+        priority_alignment = self._priority_alignment_score(current, resolved_action, valid)
+        self._track_priority_backlog(current)
+
         dispatched_volume = 0.0
         if valid:
             dispatched_volume = self._dispatch(resolved_action, current)
@@ -122,7 +144,7 @@ class CrisisLogisticsEnvironment(
             self.invalid_actions += 1
 
         arrivals = self._advance_transit()
-        retail_arrived, sla_hits = self._apply_arrivals(arrivals)
+        retail_arrived, sla_hits, priority_hits, priority_misses = self._apply_arrivals(arrivals)
         self._drain_nodes()
         self._apply_cascades()
         self._tick_disruptions()
@@ -131,16 +153,23 @@ class CrisisLogisticsEnvironment(
         if overloaded_nodes:
             self.bottlenecks += len(overloaded_nodes)
 
+        self._update_dynamic_pressure()
+
         reward, breakdown = self._calculate_step_reward(
+            current=current,
             valid=valid,
             dispatched_volume=dispatched_volume,
             retail_arrived=retail_arrived,
             sla_hits=sla_hits,
+            priority_hits=priority_hits,
+            priority_misses=priority_misses,
+            priority_alignment=priority_alignment,
             invalid_reason=invalid_reason,
         )
         self.last_reward = reward
         self.last_reward_breakdown = breakdown
         self.total_reward += reward
+        self.rolling_rewards.append(reward)
 
         if self._network_balanced():
             self.optimal_steps += 1
@@ -152,9 +181,11 @@ class CrisisLogisticsEnvironment(
         if self.schedule_index >= self.task.max_steps:
             self.done = True
         else:
-            next_shipment = self._current_shipment()
+            next_shipment = self._effective_shipment(self._current_shipment())
             self.incoming_load = next_shipment.volume
             self.event_label = next_shipment.event_hint
+            self.current_priority_target = next_shipment.preferred_retail
+            self.current_priority_window = next_shipment.priority_window_steps
 
         message = self._build_message(resolved_action, valid, invalid_reason, retail_arrived)
         observation = self._get_observation(message)
@@ -165,6 +196,26 @@ class CrisisLogisticsEnvironment(
     def _current_shipment(self) -> ScheduledShipment:
         index = min(self.schedule_index, len(self.task.incoming_schedule) - 1)
         return self.task.incoming_schedule[index]
+
+    def _effective_shipment(self, shipment: ScheduledShipment) -> ScheduledShipment:
+        event_multiplier = {
+            "normal": 1.0,
+            "flash_sale": 1.22,
+            "weather_disruption": 1.10,
+            "supplier_failure": 1.16,
+        }.get(shipment.event_hint, 1.0)
+        pressure_multiplier = 1.0 + self.dynamic_pressure * 0.35
+        adjusted_volume = round(max(1.0, shipment.volume * event_multiplier * pressure_multiplier), 2)
+        priority_window = shipment.priority_window_steps or shipment.deadline_steps
+        return ScheduledShipment(
+            source_node=shipment.source_node,
+            volume=adjusted_volume,
+            deadline_steps=shipment.deadline_steps,
+            event_hint=shipment.event_hint,
+            priority=shipment.priority,
+            preferred_retail=shipment.preferred_retail,
+            priority_window_steps=priority_window,
+        )
 
     def _resolve_action(
         self, action: CrisisLogisticsAction, current: ScheduledShipment
@@ -191,12 +242,16 @@ class CrisisLogisticsEnvironment(
 
         if source < 0 or source >= len(self.nodes) or dest < 0 or dest >= len(self.nodes):
             return resolved, False, "node_out_of_range"
+        if source == dest:
+            return resolved, False, "source_and_dest_identical"
         if dest not in self.connectivity.get(source, []):
             return resolved, False, "dest_not_connected"
         if self._is_blocked(source):
             return resolved, False, "source_blocked_by_disruption"
         if volume <= 0:
             return resolved, False, "non_positive_volume"
+        if volume > max(25.0, current.volume * 1.8):
+            return resolved, False, "volume_out_of_bounds"
         if self.node_loads[source] + 1e-6 < volume:
             return resolved, False, "insufficient_source_load"
         return resolved, True, ""
@@ -207,6 +262,16 @@ class CrisisLogisticsEnvironment(
         volume = min(float(resolved["shipment_volume"]), self.node_loads[source])
         self.node_loads[source] -= volume
         delay = self._transit_delay(source, dest)
+
+        route = (source, dest)
+        if self.recent_routes and self.recent_routes[-1] == route:
+            self.route_repeat_streak += 1
+        else:
+            self.route_repeat_streak = 1
+        self.recent_routes.append(route)
+        if len(self.recent_routes) > 8:
+            self.recent_routes.pop(0)
+
         self.in_transit.append(
             TransitShipment(
                 shipment_id=f"ship-{self.step_count}-{len(self.in_transit)}",
@@ -217,6 +282,9 @@ class CrisisLogisticsEnvironment(
                 deadline_step=self.step_count + current.deadline_steps,
                 started_step=self.step_count,
                 event_label=current.event_hint,
+                priority=current.priority,
+                preferred_retail=current.preferred_retail,
+                priority_window_step=self.step_count + current.priority_window_steps,
             )
         )
         return volume
@@ -233,9 +301,11 @@ class CrisisLogisticsEnvironment(
         self.in_transit = still_in_transit
         return arrivals
 
-    def _apply_arrivals(self, arrivals: List[TransitShipment]) -> tuple[float, int]:
+    def _apply_arrivals(self, arrivals: List[TransitShipment]) -> tuple[float, int, int, int]:
         retail_arrived = 0.0
         sla_hits = 0
+        priority_hits = 0
+        priority_misses = 0
         for shipment in arrivals:
             self.node_loads[shipment.dest] += shipment.volume
             if self.node_types[shipment.dest] == "retail":
@@ -245,7 +315,16 @@ class CrisisLogisticsEnvironment(
                 if self.step_count <= shipment.deadline_step:
                     self.sla_deliveries += 1
                     sla_hits += 1
-        return retail_arrived, sla_hits
+                if shipment.priority > 0:
+                    self.priority_backlog = max(0, self.priority_backlog - 1)
+                    on_time = self.step_count <= shipment.priority_window_step
+                    target_hit = shipment.dest == shipment.preferred_retail
+                    if on_time and target_hit:
+                        priority_hits += 1
+                        self.priority_shipments_served += 1
+                    else:
+                        priority_misses += 1
+        return retail_arrived, sla_hits, priority_hits, priority_misses
 
     def _drain_nodes(self) -> None:
         for index, load in enumerate(self.node_loads):
@@ -263,22 +342,29 @@ class CrisisLogisticsEnvironment(
 
         risk = self.node_risk_scores[candidate]
         event_boost = 0.18 if current.event_hint != "normal" else 0.0
-        if self.rng.random() < self.task.disruption_rate + risk * 0.08 + event_boost:
+        pressure_boost = self.dynamic_pressure * 0.12
+        trigger_prob = min(
+            0.95,
+            self.adaptive_disruption_rate + risk * 0.08 + event_boost + pressure_boost,
+        )
+        if self.rng.random() < trigger_prob:
             self._add_disruption(candidate, current.event_hint)
 
     def _apply_cascades(self) -> None:
+        cascade_rate = min(0.95, self.task.cascade_rate * (1.0 + self.dynamic_pressure * 0.8))
         for node_id in self._overloaded_nodes():
             downstream = self.connectivity.get(node_id, [])
             if not downstream:
                 continue
-            if self.rng.random() < self.task.cascade_rate:
+            if self.rng.random() < cascade_rate:
                 self._add_disruption(self.rng.choice(downstream), "cascade_spillover")
 
     def _add_disruption(self, node_id: int, kind: str) -> None:
         if any(d.node_id == node_id and d.kind == kind for d in self.active_disruptions):
             return
         duration = self.rng.randint(3, 8)
-        severity = round(self.rng.uniform(0.25, 0.65), 2)
+        severity_floor = 0.25 + self.dynamic_pressure * 0.15
+        severity = round(min(0.85, self.rng.uniform(severity_floor, 0.65 + self.dynamic_pressure * 0.2)), 2)
         self.active_disruptions.append(
             ActiveDisruption(node_id=node_id, kind=kind, remaining_steps=duration, severity=severity)
         )
@@ -301,44 +387,146 @@ class CrisisLogisticsEnvironment(
         for disruption in self.active_disruptions:
             if disruption.node_id in {source, dest}:
                 disruption_delay += 1 + int(disruption.severity * 2)
-        return max(2, min(8, base_delay + disruption_delay))
+        pressure_delay = int(self.dynamic_pressure * 2)
+        return max(2, min(9, base_delay + disruption_delay + pressure_delay))
 
     def _effective_drain(self, node_id: int) -> float:
         drain = self.base_drain_rates[node_id]
         for disruption in self.active_disruptions:
             if disruption.node_id == node_id:
                 drain *= max(0.2, 1.0 - disruption.severity)
+        if self.dynamic_pressure > 0.7:
+            drain *= 0.94
         return drain
 
     def _is_blocked(self, node_id: int) -> bool:
         return any(d.node_id == node_id and d.severity >= 0.6 for d in self.active_disruptions)
 
+    def _track_priority_backlog(self, current: ScheduledShipment) -> None:
+        if current.priority <= 0:
+            return
+        self.priority_shipments_total += 1
+        self.priority_backlog += 1
+
+    def _priority_alignment_score(
+        self, current: ScheduledShipment, resolved_action: Dict[str, Any], valid: bool
+    ) -> float:
+        if current.priority <= 0:
+            return 0.65
+        if not valid:
+            return 0.0
+        source = int(resolved_action.get("source_node", current.source_node))
+        dest = int(resolved_action.get("dest_node", current.source_node))
+        source_type = self.node_types[source]
+        dest_type = self.node_types[dest]
+
+        preferred_by_tier = {
+            "supplier": {"warehouse": 0.82, "distribution": 0.62, "retail": 0.22},
+            "warehouse": {"distribution": 0.86, "retail": 0.72, "warehouse": 0.28},
+            "distribution": {"retail": 0.92, "distribution": 0.34},
+            "retail": {"retail": 0.12},
+        }
+        base_score = preferred_by_tier.get(source_type, {}).get(dest_type, 0.12)
+        if dest == current.preferred_retail:
+            base_score += 0.2
+        projected_util = (self.node_loads[dest] + float(resolved_action["shipment_volume"])) / max(
+            self.node_capacities[dest], 1.0
+        )
+        if projected_util <= 0.85:
+            base_score += 0.08
+        if current.priority == 2 and dest_type == "retail":
+            base_score += 0.08
+        return max(0.0, min(1.0, round(base_score, 3)))
+
+    def _transit_health_score(self) -> float:
+        if not self.in_transit:
+            return 0.6
+        healthy = 0
+        for shipment in self.in_transit:
+            slack = shipment.deadline_step - self.step_count
+            if shipment.remaining_steps <= max(1, slack):
+                healthy += 1
+        return round(healthy / len(self.in_transit), 3)
+
+    def _last_route_risk_penalty(self) -> float:
+        if not self.last_action:
+            return 0.0
+        source = int(self.last_action.get("source_node", 0))
+        dest = int(self.last_action.get("dest_node", 0))
+        source_risk = self.node_risk_scores[source] if source < len(self.node_risk_scores) else 0.0
+        dest_risk = self.node_risk_scores[dest] if dest < len(self.node_risk_scores) else 0.0
+        disruption_bonus = 0.0
+        if any(disruption.node_id in {source, dest} for disruption in self.active_disruptions):
+            disruption_bonus = 0.25
+        return max(0.0, min(1.0, round((source_risk + dest_risk) / 2.0 + disruption_bonus, 3)))
+
+    def _update_dynamic_pressure(self) -> None:
+        overload_ratio = len(self._overloaded_nodes()) / max(len(self.nodes), 1)
+        sla_gap = max(0.0, self.task.target_sla - self._sla_success_rate())
+        expected_progress = self.step_count / max(self.task.max_steps, 1)
+        achieved_progress = self.retail_delivered / max(self.task.target_retail_delivery, 1.0)
+        delivery_gap = max(0.0, expected_progress - achieved_progress)
+        disruption_load = min(1.0, len(self.active_disruptions) / 6.0)
+        pressure = (
+            0.33 * overload_ratio
+            + 0.27 * sla_gap
+            + 0.22 * delivery_gap
+            + 0.18 * disruption_load
+        )
+        self.dynamic_pressure = round(max(0.0, min(1.0, pressure)), 3)
+        self.adaptive_disruption_rate = round(
+            min(0.95, self.task.disruption_rate * (1.0 + self.dynamic_pressure * 1.4)),
+            3,
+        )
+
     def _calculate_step_reward(
         self,
+        current: ScheduledShipment,
         valid: bool,
         dispatched_volume: float,
         retail_arrived: float,
         sla_hits: int,
+        priority_hits: int,
+        priority_misses: int,
+        priority_alignment: float,
         invalid_reason: str,
     ) -> tuple[float, Dict[str, float]]:
         expected = max(self.incoming_load, 1.0)
-        throughput_score = min(1.0, retail_arrived / expected)
-        sla_score = self._sla_success_rate() if self.total_retail_deliveries > 0 else 0.45
+        throughput_score = min(1.0, (retail_arrived + dispatched_volume * 0.15) / expected)
+        sla_score = self._sla_success_rate() if self.total_retail_deliveries > 0 else 0.0
         balance_score = max(0.0, 1.0 - self._balance_gap() / 0.85)
         recovery_score = max(0.0, 1.0 - (len(self._overloaded_nodes()) + len(self.active_disruptions)) / 8.0)
+        transit_health_score = self._transit_health_score()
         valid_score = 1.0 if valid else 0.0
+
+        if current.priority > 0 and (priority_hits + priority_misses) > 0:
+            priority_service_score = priority_hits / max(priority_hits + priority_misses, 1)
+        else:
+            if current.priority > 0:
+                priority_service_score = 0.6 * priority_alignment + 0.4 * self._priority_service_rate()
+            else:
+                priority_service_score = max(0.45, self._priority_service_rate())
+
         overload_penalty = min(1.0, len(self._overloaded_nodes()) / 4.0)
-        invalid_penalty = 0.35 if invalid_reason else 0.0
-        anti_gaming_penalty = 0.08 if dispatched_volume > 0 and retail_arrived == 0 else 0.0
+        invalid_penalty = 0.34 if invalid_reason else 0.0
+        loop_penalty = min(1.0, max(0, self.route_repeat_streak - 2) / 4.0)
+        risk_penalty = self._last_route_risk_penalty()
+        pressure_penalty = self.dynamic_pressure
+        anti_gaming_penalty = 0.10 if self.route_repeat_streak >= 3 and retail_arrived <= 0 else 0.0
 
         reward = (
-            0.18 * valid_score
-            + 0.22 * throughput_score
-            + 0.18 * sla_score
-            + 0.20 * balance_score
-            + 0.17 * recovery_score
-            - 0.22 * overload_penalty
+            0.14 * valid_score
+            + 0.18 * throughput_score
+            + 0.16 * sla_score
+            + 0.15 * balance_score
+            + 0.13 * recovery_score
+            + 0.12 * priority_service_score
+            + 0.09 * transit_health_score
+            - 0.16 * overload_penalty
             - invalid_penalty
+            - 0.10 * loop_penalty
+            - 0.08 * risk_penalty
+            - 0.06 * pressure_penalty
             - anti_gaming_penalty
         )
         breakdown = {
@@ -347,12 +535,17 @@ class CrisisLogisticsEnvironment(
             "sla": round(sla_score, 3),
             "network_balance": round(balance_score, 3),
             "disruption_recovery": round(recovery_score, 3),
+            "priority_service": round(priority_service_score, 3),
+            "transit_health": round(transit_health_score, 3),
             "overload_penalty": round(overload_penalty, 3),
+            "loop_penalty": round(loop_penalty, 3),
+            "risk_penalty": round(risk_penalty, 3),
+            "pressure_penalty": round(pressure_penalty, 3),
             "anti_gaming_penalty": round(anti_gaming_penalty, 3),
             "invalid_penalty": round(invalid_penalty, 3),
         }
         self.recovery_history.append(recovery_score)
-        return round(max(0.0, min(1.0, reward)), 2), breakdown
+        return round(max(0.0, min(1.0, reward)), 3), breakdown
 
     def _compute_score(self) -> float:
         metrics = self._metrics()
@@ -399,6 +592,11 @@ class CrisisLogisticsEnvironment(
             return 0.0
         return round(self.sla_deliveries / self.total_retail_deliveries, 3)
 
+    def _priority_service_rate(self) -> float:
+        if self.priority_shipments_total == 0:
+            return 0.0
+        return round(self.priority_shipments_served / self.priority_shipments_total, 3)
+
     def _tier_summary(self) -> tuple[List[float], List[float]]:
         tiers = [
             [0, 1, 2, 3],
@@ -429,6 +627,7 @@ class CrisisLogisticsEnvironment(
         visible.update(disruption.node_id for disruption in self.active_disruptions)
         visible.update(shipment.source for shipment in self.in_transit[:4])
         visible.update(shipment.dest for shipment in self.in_transit[:4])
+        visible.add(self.current_priority_target)
         return {node for node in visible if 0 <= node < len(self.nodes)}
 
     def _active_disruption_dicts(self) -> List[Dict[str, Any]]:
@@ -453,6 +652,9 @@ class CrisisLogisticsEnvironment(
                 "remaining_steps": shipment.remaining_steps,
                 "deadline_step": shipment.deadline_step,
                 "event_label": shipment.event_label,
+                "priority": shipment.priority,
+                "preferred_retail": shipment.preferred_retail,
+                "priority_window_step": shipment.priority_window_step,
             }
             for shipment in self.in_transit[:12]
         ]
@@ -461,13 +663,17 @@ class CrisisLogisticsEnvironment(
         self, resolved_action: Dict[str, Any], valid: bool, invalid_reason: str, retail_arrived: float
     ) -> str:
         if not valid:
-            return f"Action rejected: {invalid_reason}. Active disruptions: {len(self.active_disruptions)}."
+            return (
+                f"Action rejected: {invalid_reason}. Active disruptions: {len(self.active_disruptions)}. "
+                f"Pressure={self.dynamic_pressure:.2f}."
+            )
         source = resolved_action.get("source_node")
         dest = resolved_action.get("dest_node")
         volume = resolved_action.get("shipment_volume")
         return (
             f"Dispatched {volume} units from Node {source} to Node {dest}. "
-            f"Retail arrivals this step: {round(retail_arrived, 2)}."
+            f"Retail arrivals this step: {round(retail_arrived, 2)}. "
+            f"Priority target: Node {self.current_priority_target}. Pressure={self.dynamic_pressure:.2f}."
         )
 
     def _get_observation(self, message: str) -> CrisisLogisticsObservation:
@@ -485,20 +691,26 @@ class CrisisLogisticsEnvironment(
         }
         hub_loads, drain_rates = self._tier_summary()
         overloaded = len(self._overloaded_nodes())
-        current = self._current_shipment()
+        current = self._effective_shipment(self._current_shipment())
         return CrisisLogisticsObservation(
             task_id=self.task.task_id,
             difficulty=self.task.difficulty,
             objective=self.task.objective,
             hub_loads=hub_loads,
             drain_rates=drain_rates,
-            incoming_load=0.0 if self.done else current.volume,
+            incoming_load=0.0 if self.done else self.incoming_load,
             step_count=self.step_count,
             max_steps=self.task.max_steps,
             overloaded_hubs=overloaded,
             cumulative_score=self.score,
             last_reward=self.last_reward,
             event_label="completed" if self.done else current.event_hint,
+            dynamic_pressure=self.dynamic_pressure,
+            adaptive_disruption_rate=self.adaptive_disruption_rate,
+            priority_target_node=self.current_priority_target,
+            priority_target_name=self.node_names[self.current_priority_target],
+            priority_queue_depth=self.priority_backlog,
+            priority_service_rate=self._priority_service_rate(),
             message=message,
             node_names=self.node_names,
             node_types=self.node_types,
@@ -527,6 +739,8 @@ class CrisisLogisticsEnvironment(
                 "network_shape": "4 suppliers -> 3 warehouses -> 3 distribution centers -> 2 retail sinks",
                 "partial_observability": "Agent sees a two-hop neighborhood plus active disruptions.",
                 "bottlenecks": self.bottlenecks,
+                "adaptive_pressure": self.dynamic_pressure,
+                "priority_target_node": self.current_priority_target,
             },
         )
 
@@ -548,6 +762,10 @@ class CrisisLogisticsEnvironment(
             active_disruptions=self._active_disruption_dicts(),
             retail_delivered=round(self.retail_delivered, 2),
             sla_success_rate=self._sla_success_rate(),
+            dynamic_pressure=self.dynamic_pressure,
+            adaptive_disruption_rate=self.adaptive_disruption_rate,
+            priority_target_node=self.current_priority_target,
+            priority_service_rate=self._priority_service_rate(),
         )
 
 
@@ -605,6 +823,83 @@ def choose_network_action(observation: CrisisLogisticsObservation) -> CrisisLogi
     if best is None:
         return CrisisLogisticsAction(target_hub=0)
     return CrisisLogisticsAction(**best)
+
+
+def choose_resilient_action(observation: CrisisLogisticsObservation) -> CrisisLogisticsAction:
+    """Priority-aware and risk-aware heuristic for stronger baseline performance."""
+
+    loads = observation.node_loads or []
+    capacities = observation.node_capacities or []
+    node_types = observation.node_types or []
+    risk_scores = observation.node_risk_scores or []
+    connectivity = {int(k): v for k, v in observation.connectivity.items()} if observation.connectivity else {}
+    visible_nodes = set(observation.visible_node_ids or range(len(loads)))
+    priority_target = observation.priority_target_node
+    pressure = observation.dynamic_pressure
+
+    if not loads or not capacities or not connectivity:
+        return CrisisLogisticsAction(target_hub=0)
+
+    baseline = choose_network_action(observation)
+    if observation.difficulty == "hard":
+        return baseline
+    urgent = (
+        observation.event_label in {"flash_sale", "supplier_failure", "weather_disruption"}
+        or pressure > 0.45
+        or observation.priority_queue_depth > 0
+    )
+    if not urgent:
+        return baseline
+
+    source = baseline.source_node if baseline.source_node is not None else observation.pending_source_node
+    if source not in visible_nodes:
+        source = observation.pending_source_node
+    if source < 0 or source >= len(loads):
+        return baseline
+
+    candidates = connectivity.get(source, [])
+    if not candidates:
+        return baseline
+
+    best_dest = None
+    best_score = float("-inf")
+    for dest in candidates:
+        if dest < 0 or dest >= len(capacities):
+            continue
+        free_capacity = max(0.0, capacities[dest] - loads[dest])
+        if free_capacity <= 0:
+            continue
+        projected_util = (loads[dest] + min(loads[source], free_capacity * 0.5)) / capacities[dest]
+        if projected_util > 0.92:
+            continue
+        risk = risk_scores[dest] if dest < len(risk_scores) else 0.0
+        tier_bonus = 0.24 if node_types[dest] == "distribution" else 0.36 if node_types[dest] == "retail" else 0.12
+        priority_bonus = 0.45 if dest == priority_target else 0.0
+        score = priority_bonus + tier_bonus - projected_util * 0.9 - risk * 0.5
+        if score > best_score:
+            best_score = score
+            best_dest = dest
+
+    if best_dest is None:
+        return baseline
+
+    free_capacity = max(0.0, capacities[best_dest] - loads[best_dest])
+    base_volume = baseline.shipment_volume if baseline.shipment_volume is not None else observation.incoming_load
+    safe_volume = min(
+        loads[source],
+        max(1.0, base_volume),
+        free_capacity * (0.5 if pressure > 0.55 else 0.62),
+        14.0,
+    )
+    if safe_volume <= 0:
+        return baseline
+
+    return CrisisLogisticsAction(
+        source_node=source,
+        dest_node=best_dest,
+        shipment_volume=round(safe_volume, 2),
+        reasoning="Resilient heuristic safely biases urgent flow toward priority demand under capacity constraints.",
+    )
 
 
 def choose_balancing_action(observation: CrisisLogisticsObservation) -> int:

@@ -11,7 +11,7 @@ setup(
         "crisis_logistics_env.server": "../server",
     },
     install_requires=[
-        "openenv-core[core]>=0.2.2",
+        "openenv-core[core]>=0.2.3",
         "numpy>=1.26.0",
         "gymnasium>=0.29.0",
         "openai>=2.0.0",

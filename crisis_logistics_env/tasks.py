@@ -22,6 +22,9 @@ class ScheduledShipment:
     volume: float
     deadline_steps: int
     event_hint: str
+    priority: int = 0
+    preferred_retail: int = 10
+    priority_window_steps: int = 0
 
 
 @dataclass(frozen=True)
@@ -134,25 +137,40 @@ def _schedule(
         volume = base + (step % 5) * 1.5
         event = "normal"
         deadline = 12
+        priority = 0
+        preferred_retail = 10 if step % 2 == 0 else 11
+        priority_window = deadline
         if step in surge_steps:
             volume += 11.0
             event = "flash_sale"
             deadline = 10
+            priority = max(priority, 1)
+            preferred_retail = 11 if step % 3 else 10
+            priority_window = 8
         if step in weather_steps:
             volume += 5.0
             event = "weather_disruption"
             deadline = 14
+            priority = max(priority, 1)
+            preferred_retail = 10
+            priority_window = 11
         if step in failure_steps:
             volume += 8.0
             source = 2
             event = "supplier_failure"
             deadline = 15
+            priority = 2
+            preferred_retail = 11
+            priority_window = 9
         shipments.append(
             ScheduledShipment(
                 source_node=source,
                 volume=round(volume, 2),
                 deadline_steps=deadline,
                 event_hint=event,
+                priority=priority,
+                preferred_retail=preferred_retail,
+                priority_window_steps=priority_window,
             )
         )
     return shipments

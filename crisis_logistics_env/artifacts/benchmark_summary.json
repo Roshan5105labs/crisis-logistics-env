@@ -1,0 +1,144 @@
+{
+  "policies": {
+    "heuristic": {
+      "avg_score": 0.782,
+      "avg_reward": 0.648,
+      "avg_sla_success_rate": 1.0,
+      "avg_priority_service_rate": 0.066,
+      "avg_invalid_actions": 3.333
+    },
+    "resilient": {
+      "avg_score": 0.776,
+      "avg_reward": 0.648,
+      "avg_sla_success_rate": 1.0,
+      "avg_priority_service_rate": 0.043,
+      "avg_invalid_actions": 3
+    },
+    "round_robin": {
+      "avg_score": 0.469,
+      "avg_reward": 0.491,
+      "avg_sla_success_rate": 0.0,
+      "avg_priority_service_rate": 0.0,
+      "avg_invalid_actions": 2
+    }
+  },
+  "runs": [
+    {
+      "task_id": "easy",
+      "policy": "round_robin",
+      "total_reward": 26.563,
+      "average_reward": 0.531,
+      "score": 0.473,
+      "bottlenecks": 0,
+      "retail_delivered": 0.0,
+      "sla_success_rate": 0.0,
+      "priority_service_rate": 0.0,
+      "average_pressure": 0.306,
+      "invalid_actions": 0
+    },
+    {
+      "task_id": "medium",
+      "policy": "round_robin",
+      "total_reward": 35.858,
+      "average_reward": 0.512,
+      "score": 0.472,
+      "bottlenecks": 0,
+      "retail_delivered": 0.0,
+      "sla_success_rate": 0.0,
+      "priority_service_rate": 0.0,
+      "average_pressure": 0.279,
+      "invalid_actions": 0
+    },
+    {
+      "task_id": "hard",
+      "policy": "round_robin",
+      "total_reward": 38.708,
+      "average_reward": 0.43,
+      "score": 0.461,
+      "bottlenecks": 0,
+      "retail_delivered": 0.0,
+      "sla_success_rate": 0.0,
+      "priority_service_rate": 0.0,
+      "average_pressure": 0.268,
+      "invalid_actions": 6
+    },
+    {
+      "task_id": "easy",
+      "policy": "heuristic",
+      "total_reward": 35.149,
+      "average_reward": 0.703,
+      "score": 0.768,
+      "bottlenecks": 0,
+      "retail_delivered": 52.08,
+      "sla_success_rate": 1.0,
+      "priority_service_rate": 0.0,
+      "average_pressure": 0.078,
+      "invalid_actions": 0
+    },
+    {
+      "task_id": "medium",
+      "policy": "heuristic",
+      "total_reward": 46.004,
+      "average_reward": 0.657,
+      "score": 0.763,
+      "bottlenecks": 0,
+      "retail_delivered": 72.23,
+      "sla_success_rate": 1.0,
+      "priority_service_rate": 0.067,
+      "average_pressure": 0.079,
+      "invalid_actions": 3
+    },
+    {
+      "task_id": "hard",
+      "policy": "heuristic",
+      "total_reward": 52.561,
+      "average_reward": 0.584,
+      "score": 0.814,
+      "bottlenecks": 1,
+      "retail_delivered": 143.12,
+      "sla_success_rate": 1.0,
+      "priority_service_rate": 0.13,
+      "average_pressure": 0.072,
+      "invalid_actions": 7
+    },
+    {
+      "task_id": "easy",
+      "policy": "resilient",
+      "total_reward": 35.107,
+      "average_reward": 0.702,
+      "score": 0.761,
+      "bottlenecks": 0,
+      "retail_delivered": 48.14,
+      "sla_success_rate": 1.0,
+      "priority_service_rate": 0.0,
+      "average_pressure": 0.081,
+      "invalid_actions": 0
+    },
+    {
+      "task_id": "medium",
+      "policy": "resilient",
+      "total_reward": 46.149,
+      "average_reward": 0.659,
+      "score": 0.752,
+      "bottlenecks": 0,
+      "retail_delivered": 62.87,
+      "sla_success_rate": 1.0,
+      "priority_service_rate": 0.0,
+      "average_pressure": 0.084,
+      "invalid_actions": 2
+    },
+    {
+      "task_id": "hard",
+      "policy": "resilient",
+      "total_reward": 52.561,
+      "average_reward": 0.584,
+      "score": 0.814,
+      "bottlenecks": 1,
+      "retail_delivered": 143.12,
+      "sla_success_rate": 1.0,
+      "priority_service_rate": 0.13,
+      "average_pressure": 0.072,
+      "invalid_actions": 7
+    }
+  ]
+}

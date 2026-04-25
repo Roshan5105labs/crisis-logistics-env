@@ -43,11 +43,7 @@ RUN rm -rf /app/env/.venv
 ENV UV_PROJECT_ENVIRONMENT=/app/env/.venv
 
 RUN --mount=type=cache,target=/root/.cache/uv \
-    if [ -f uv.lock ]; then \
-        uv sync --frozen; \
-    else \
-        uv sync; \
-    fi
+    uv sync
 
 # Final runtime stage
 FROM ${BASE_IMAGE}

@@ -6,6 +6,10 @@
 
 """Crisis Logistics Env environment server components."""
 
-from .crisis_logistics_env_environment import CrisisLogisticsEnvironment
+from .crisis_logistics_env_environment import (
+    CrisisLogisticsEnvironment,
+    choose_network_action,
+    choose_resilient_action,
+)
 
-__all__ = ["CrisisLogisticsEnvironment"]
+__all__ = ["CrisisLogisticsEnvironment", "choose_network_action", "choose_resilient_action"]

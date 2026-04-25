@@ -30,7 +30,7 @@ class LogiFlowGymEnv(gym.Env):
                 "shipment_volume": spaces.Box(low=1.0, high=60.0, shape=(), dtype=np.float32),
             }
         )
-        self.observation_space = spaces.Box(low=0.0, high=1.5, shape=(17,), dtype=np.float32)
+        self.observation_space = spaces.Box(low=0.0, high=1.5, shape=(20,), dtype=np.float32)
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
@@ -66,6 +66,9 @@ class LogiFlowGymEnv(gym.Env):
             len(observation.active_disruptions) / 12.0,
             observation.cumulative_score,
             observation.step_count / max(observation.max_steps, 1),
+            observation.dynamic_pressure,
+            observation.priority_service_rate,
+            min(1.0, observation.adaptive_disruption_rate),
         ]
         return np.array(util + extras, dtype=np.float32)
 
@@ -75,4 +78,6 @@ class LogiFlowGymEnv(gym.Env):
             "bottlenecks": self.env.bottlenecks,
             "retail_delivered": self.env.retail_delivered,
             "sla_success_rate": self.env._sla_success_rate(),
+            "dynamic_pressure": self.env.dynamic_pressure,
+            "priority_service_rate": self.env._priority_service_rate(),
         }

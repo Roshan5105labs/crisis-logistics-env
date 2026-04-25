@@ -41,12 +41,12 @@ def grade_episode(task: TaskConfig, metrics: EpisodeMetrics) -> float:
     validity_score = max(0.0, 1.0 - metrics.invalid_actions / max(1, metrics.steps_completed))
 
     final_score = (
-        0.18 * bottleneck_score
-        + 0.18 * balance_score
-        + 0.14 * reward_score
-        + 0.20 * delivery_score
-        + 0.15 * sla_score
+        0.12 * bottleneck_score
+        + 0.10 * balance_score
+        + 0.10 * reward_score
+        + 0.32 * delivery_score
+        + 0.20 * sla_score
         + 0.10 * recovery_score
-        + 0.05 * validity_score
+        + 0.06 * validity_score
     )
     return round(max(0.0, min(1.0, final_score)), 3)

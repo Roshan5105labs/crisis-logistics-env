@@ -379,6 +379,14 @@
               <span class="stat-label">SLA Success</span>
               <span class="stat-val blue" id="slaSuccess">—</span>
             </div>
+            <div class="stat-row">
+              <span class="stat-label">Dynamic Pressure</span>
+              <span class="stat-val amber" id="dynamicPressure">—</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Priority Target</span>
+              <span class="stat-val" id="priorityTarget">—</span>
+            </div>
           </div>
         </div>
       </div>
@@ -691,6 +699,7 @@
     const ev = obs.event_label || 'normal';
     if (ev.includes('flash')) { eb.className = 'event-tag event-flash'; eb.textContent = '⚡ FLASH SALE'; }
     else if (ev.includes('weather')) { eb.className = 'event-tag event-weather'; eb.textContent = '🌩 WEATHER'; }
+    else if (ev.includes('supplier')) { eb.className = 'event-tag event-weather'; eb.textContent = 'SUPPLIER RISK'; }
     else { eb.className = 'event-tag event-normal'; eb.textContent = '✓ NORMAL'; }
 
     // Score arc (173 = half circumference of r=55 arc)
@@ -711,6 +720,8 @@
     document.getElementById('inTransit').textContent = (obs.in_transit_shipments || []).length;
     document.getElementById('retailDelivered').textContent = (obs.retail_delivered || 0).toFixed(1);
     document.getElementById('slaSuccess').textContent = ((obs.sla_success_rate || 0) * 100).toFixed(0) + '%';
+    document.getElementById('dynamicPressure').textContent = ((obs.dynamic_pressure || 0) * 100).toFixed(0) + '%';
+    document.getElementById('priorityTarget').textContent = obs.priority_target_name || ('Node ' + (obs.priority_target_node ?? '—'));
     document.getElementById('objective').textContent = obs.objective || '—';
     document.getElementById('lastMsg').textContent = obs.message || '';
 
@@ -786,3 +797,4 @@
 </script>
 </body>
 </html>
+
