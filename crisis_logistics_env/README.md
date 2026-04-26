@@ -14,7 +14,7 @@ base_path: /web
 > **Training an LLM to route shipments proactively across a 12-node global supply chain — before disruptions cascade, not after.**
 
 [![OpenEnv](https://img.shields.io/badge/OpenEnv-compliant-blue)](https://github.com/meta-pytorch/OpenEnv)
-[![HuggingFace Space](https://img.shields.io/badge/🤗%20Space-Live-green)](https://huggingface.co/spaces/<your-space-url>)
+[![HuggingFace Space](https://img.shields.io/badge/🤗%20Space-Live-green)](https://huggingface.co/spaces/roshan5emerald/logiflow-rl)
 [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1wGXYNNYp13emNE1ThX3aqpIM3ppcU_Ty?usp=sharing)
 [![Theme](https://img.shields.io/badge/Theme-Long--Horizon%20Planning-purple)](https://github.com/meta-pytorch/OpenEnv)
 
