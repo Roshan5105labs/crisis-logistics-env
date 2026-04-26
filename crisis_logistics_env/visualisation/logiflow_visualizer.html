@@ -1,892 +1,1074 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LogiFlow-RL Â· Live Environment Visualizer</title>
+<title>LogiFlow-RL · 12-Node Supply Chain</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@600;700;800&display=swap');
+:root{
+  --bg:#060a12;--panel:#0d1220;--panel2:#111827;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.11);
+  --accent:#00e5ff;--purple:#7c3aed;
+  --green:#10b981;--amber:#f59e0b;--red:#ef4444;
+  --text:#e2e8f0;--dim:#64748b;--muted:#4b5563;
+  --mono:'JetBrains Mono',monospace;--sans:'Syne',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;
+  background:linear-gradient(rgba(255,255,255,0.013) 1px,transparent 1px),
+             linear-gradient(90deg,rgba(255,255,255,0.013) 1px,transparent 1px),
+             radial-gradient(ellipse 70% 40% at 50% 0%,rgba(0,229,255,0.05),transparent);
+  background-size:44px 44px,44px 44px,100% 100%;
+  pointer-events:none;z-index:0;}
+.w{position:relative;z-index:1;max-width:1380px;margin:0 auto;padding:18px;}
 
-  :root {
-    --bg: #0a0e1a;
-    --surface: #111827;
-    --surface2: #1a2236;
-    --border: #1e2d45;
-    --accent: #00d4ff;
-    --accent2: #ff6b35;
-    --green: #00e676;
-    --amber: #ffab00;
-    --red: #ff3d57;
-    --text: #e8edf5;
-    --muted: #5a7090;
-    --mono: 'Space Mono', monospace;
-    --sans: 'DM Sans', sans-serif;
-  }
+/* ── header ── */
+header{display:flex;align-items:center;justify-content:space-between;
+  padding-bottom:14px;border-bottom:1px solid var(--border2);margin-bottom:16px;}
+.logo{display:flex;align-items:center;gap:11px;}
+.li{width:38px;height:38px;border-radius:9px;
+  background:linear-gradient(135deg,var(--purple),var(--accent));
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-weight:700;font-size:12px;color:#fff;}
+.lt h1{font-size:17px;font-weight:800;letter-spacing:-.5px;}
+.lt p{font-size:10px;color:var(--dim);font-family:var(--mono);margin-top:1px;}
+.badge{display:flex;align-items:center;gap:6px;padding:6px 12px;
+  border-radius:20px;background:var(--panel2);border:1px solid var(--border2);
+  font-size:11px;font-family:var(--mono);}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted);}
+.dot.on{background:var(--green);box-shadow:0 0 7px var(--green);animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; overflow-x: hidden; }
+/* ── start banner ── */
+#startBanner{
+  background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(0,229,255,.1));
+  border:1px solid rgba(0,229,255,.25);border-radius:12px;
+  padding:20px 24px;margin-bottom:16px;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  flex-wrap:wrap;
+}
+#startBanner h2{font-size:15px;font-weight:700;color:var(--accent);margin-bottom:4px;}
+#startBanner p{font-size:12px;color:var(--dim);font-family:var(--mono);}
+.btn-start{
+  background:linear-gradient(135deg,var(--purple),var(--accent));
+  color:#fff;border:none;border-radius:10px;
+  padding:12px 28px;font-size:14px;font-weight:700;
+  cursor:pointer;font-family:var(--sans);
+  transition:all .2s;white-space:nowrap;
+}
+.btn-start:hover{transform:translateY(-2px);filter:brightness(1.1);}
 
-  /* Grid lines background */
-  body::before {
-    content: '';
-    position: fixed; inset: 0;
-    background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
-    background-size: 40px 40px;
-    opacity: 0.3;
-    pointer-events: none;
-    z-index: 0;
-  }
+/* ── controls ── */
+.ctrl{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;align-items:center;}
+input[type=text]{flex:1;min-width:160px;background:var(--panel2);
+  border:1px solid var(--border2);color:var(--text);
+  padding:8px 13px;border-radius:8px;font-family:var(--mono);font-size:11px;outline:none;}
+input:focus{border-color:var(--accent);}
+select{background:var(--panel2);border:1px solid var(--border2);color:var(--text);
+  padding:8px 13px;border-radius:8px;font-size:12px;cursor:pointer;outline:none;}
+.btn{padding:8px 15px;border-radius:8px;font-family:var(--sans);font-size:12px;
+  font-weight:600;cursor:pointer;border:none;transition:all .15s;}
+.bp{background:var(--accent);color:var(--bg);}
+.bp:hover{filter:brightness(1.1);}
+.bs{background:var(--panel2);border:1px solid var(--border2);color:var(--text);}
+.bs:hover{border-color:var(--accent);color:var(--accent);}
+.bplay{background:var(--panel2);border:1px solid var(--border2);color:var(--amber);}
+.bplay.on{background:rgba(245,158,11,.1);border-color:var(--amber);}
 
-  .wrap { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 24px; }
+/* ── main layout ── */
+.main{display:grid;grid-template-columns:1fr 350px;gap:14px;}
+.card{background:var(--panel);border:1px solid var(--border2);border-radius:14px;overflow:hidden;}
+.ch{padding:10px 15px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;}
+.ct{font-family:var(--mono);font-size:10px;font-weight:700;
+  color:var(--dim);text-transform:uppercase;letter-spacing:1.5px;}
+.cb{padding:14px;}
 
-  /* Header */
-  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
-  .logo { display: flex; align-items: center; gap: 12px; }
-  .logo-icon { width: 38px; height: 38px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-weight: 700; font-size: 14px; color: var(--bg); }
-  .logo-text h1 { font-family: var(--mono); font-size: 16px; font-weight: 700; color: var(--accent); letter-spacing: 1px; }
-  .logo-text p { font-size: 11px; color: var(--muted); margin-top: 2px; }
-  .status-pill { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; font-size: 11px; font-family: var(--mono); }
-  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
-  .dot.live { background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+/* ── svg network ── */
+svg.net{width:100%;border-radius:8px;background:rgba(0,0,0,.22);}
+.nb{fill:var(--panel2);stroke-width:1.5;transition:stroke .3s,filter .3s;
+  filter:drop-shadow(0 2px 5px rgba(0,0,0,.5));}
+.nb.s{stroke:#7c3aed;}.nb.wh{stroke:#0ea5e9;}
+.nb.dc{stroke:#f59e0b;}.nb.rt{stroke:#10b981;}
+.nb.ol{stroke:#ef4444!important;animation:pulsered 1s infinite;}
+.nb.wn{stroke:#f59e0b!important;}
+.nb.src{stroke:var(--accent)!important;stroke-width:2.5!important;
+  filter:drop-shadow(0 0 10px var(--accent));}
+@keyframes pulsered{
+  0%,100%{filter:drop-shadow(0 0 5px rgba(239,68,68,.6))}
+  50%{filter:drop-shadow(0 0 14px rgba(239,68,68,1))}}
+.nl{fill:var(--text);font-family:var(--mono);font-size:8.5px;
+  font-weight:700;text-anchor:middle;}
+.nt{fill:var(--dim);font-family:var(--mono);font-size:7px;text-anchor:middle;}
+.nv{font-family:var(--mono);font-weight:700;text-anchor:middle;font-size:11px;}
+.edge{stroke-width:1.2;fill:none;opacity:.3;}
+.edge.act{opacity:1;stroke-width:2.8;
+  animation:dash .75s linear infinite;stroke-dasharray:7 4;}
+@keyframes dash{to{stroke-dashoffset:-22}}
+.pt{fill:var(--accent);filter:drop-shadow(0 0 5px var(--accent));}
+.tl{fill:var(--muted);font-family:var(--mono);font-size:8px;text-anchor:middle;}
 
-  /* Controls */
-  .controls { display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }
-  .server-input { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 9px 14px; border-radius: 8px; font-family: var(--mono); font-size: 12px; outline: none; }
-  .server-input:focus { border-color: var(--accent); }
-  select { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 9px 14px; border-radius: 8px; font-family: var(--sans); font-size: 12px; outline: none; cursor: pointer; }
-  select:focus { border-color: var(--accent); }
-  btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 8px; font-family: var(--sans); font-size: 12px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; }
-  .btn-primary { background: var(--accent); color: var(--bg); }
-  .btn-primary:hover { background: #33ddff; transform: translateY(-1px); }
-  .btn-secondary { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
-  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
-  .btn-danger { background: var(--surface); border: 1px solid var(--border); color: var(--red); }
-  .btn-auto { background: var(--surface2); border: 1px solid var(--border); color: var(--amber); }
-  .btn-auto.running { border-color: var(--amber); background: rgba(255,171,0,0.1); }
+/* ── ep bar ── */
+.epbar{height:4px;background:var(--border2);border-radius:2px;overflow:hidden;margin:8px 0 3px;}
+.epfill{height:100%;border-radius:2px;
+  background:linear-gradient(90deg,var(--purple),var(--accent));transition:width .4s;}
+.eplbl{font-size:9px;font-family:var(--mono);color:var(--dim);}
 
-  /* Main grid */
-  .main-grid { display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
+/* ── event badge ── */
+.ev{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;
+  border-radius:20px;font-size:10px;font-family:var(--mono);font-weight:700;}
+.en{background:rgba(0,229,255,.1);color:var(--accent);border:1px solid rgba(0,229,255,.2);}
+.es{background:rgba(245,158,11,.1);color:var(--amber);border:1px solid rgba(245,158,11,.3);}
+.ew{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.3);}
 
-  /* Cards */
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-  .card-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-  .card-title { font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; }
-  .card-body { padding: 16px; }
+/* ── sidebar ── */
+.sidebar{display:flex;flex-direction:column;gap:11px;}
+.score-center{text-align:center;padding:14px 14px 8px;}
+.arc-wrap{position:relative;width:108px;height:64px;margin:0 auto 4px;}
+.arc-val{position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+  font-family:var(--mono);font-size:21px;font-weight:700;color:var(--accent);}
+.arc-lbl{font-size:9px;font-family:var(--mono);color:var(--dim);
+  letter-spacing:1.5px;text-transform:uppercase;}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.sb{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:9px;}
+.sbl{font-size:9px;font-family:var(--mono);color:var(--dim);
+  text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;}
+.sbv{font-family:var(--mono);font-size:15px;font-weight:700;}
+.cg{color:var(--green);}.ca{color:var(--amber);}.cr{color:var(--red);}.cb2{color:var(--accent);}
+.rsn{background:var(--panel2);border:1px solid var(--border);border-radius:9px;
+  padding:11px;font-family:var(--mono);font-size:10.5px;line-height:1.75;
+  color:var(--dim);min-height:76px;max-height:108px;overflow-y:auto;}
+.rsn.tk{color:var(--accent);animation:tb 1s infinite;}
+@keyframes tb{0%,100%{opacity:1}50%{opacity:.5}}
+.rsn::-webkit-scrollbar{width:3px;}
+.rsn::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+.spkc{width:100%;height:44px;display:block;}
+.log{font-family:var(--mono);font-size:10px;line-height:1.85;max-height:96px;overflow-y:auto;}
+.log::-webkit-scrollbar{width:3px;}
+.log::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+.le{display:flex;gap:7px;}
+.lt2{color:var(--muted);min-width:46px;}
+.lg2{color:var(--green);}.lb2{color:var(--red);}.li2{color:var(--accent);}.lw2{color:var(--amber);}
+.actionrow{display:flex;gap:10px;margin-top:6px;font-family:var(--mono);font-size:10.5px;}
 
-  /* Hub viz */
-  .hub-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
-  .hub-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; position: relative; transition: border-color 0.3s; }
-  .hub-card.overloaded { border-color: var(--red); box-shadow: 0 0 16px rgba(255,61,87,0.2); }
-  .hub-card.optimal { border-color: var(--green); }
-  .hub-card.warning { border-color: var(--amber); }
-  .hub-name { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
-  .hub-load-val { font-family: var(--mono); font-size: 28px; font-weight: 700; line-height: 1; margin-bottom: 10px; }
-  .hub-load-val span { font-size: 14px; color: var(--muted); font-weight: 400; }
-  .bar-track { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
-  .bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s cubic-bezier(0.4,0,0.2,1); }
-  .bar-fill.green { background: var(--green); }
-  .bar-fill.amber { background: var(--amber); }
-  .bar-fill.red { background: var(--red); box-shadow: 0 0 8px var(--red); }
-  .hub-drain { font-size: 10px; color: var(--muted); font-family: var(--mono); }
-  .hub-status-badge { position: absolute; top: 10px; right: 10px; font-size: 9px; font-family: var(--mono); font-weight: 700; padding: 2px 6px; border-radius: 4px; }
-  .badge-optimal { background: rgba(0,230,118,0.15); color: var(--green); }
-  .badge-warning { background: rgba(255,171,0,0.15); color: var(--amber); }
-  .badge-critical { background: rgba(255,61,87,0.15); color: var(--red); }
+/* legend */
+.legend{display:flex;gap:14px;margin-top:9px;flex-wrap:wrap;}
+.legend div{display:flex;align-items:center;gap:5px;font-size:10px;
+  font-family:var(--mono);color:var(--dim);}
+.lsq{width:10px;height:10px;border-radius:2px;}
 
-  /* Full node panel (12-node live state) */
-  .node-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-  .node-chip { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px; transition: border-color 0.2s, box-shadow 0.2s, opacity 0.2s; }
-  .node-chip.visible { border-color: #335a89; }
-  .node-chip.hidden { opacity: 0.58; border-style: dashed; }
-  .node-chip.overload { border-color: var(--red); box-shadow: 0 0 10px rgba(255,61,87,0.18); }
-  .node-head { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 5px; }
-  .node-id { font-family: var(--mono); font-size: 10px; color: var(--muted); }
-  .node-type { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .node-type.supplier { color: #7cc0ff; }
-  .node-type.warehouse { color: #9f93ff; }
-  .node-type.distribution { color: #ffab00; }
-  .node-type.retail { color: #00e676; }
-  .node-name { font-size: 10px; color: var(--text); margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .node-metrics { display: flex; justify-content: space-between; align-items: center; font-family: var(--mono); font-size: 10px; color: var(--muted); margin-bottom: 5px; }
-  .node-meter { height: 4px; background: var(--border); border-radius: 999px; overflow: hidden; }
-  .node-meter-fill { height: 100%; transition: width 0.3s ease; }
-  .node-meter-fill.ok { background: var(--green); }
-  .node-meter-fill.warn { background: var(--amber); }
-  .node-meter-fill.bad { background: var(--red); }
-  .node-flags { margin-top: 5px; font-family: var(--mono); font-size: 9px; color: var(--amber); min-height: 10px; }
-
-  /* Network SVG */
-  .network-wrap { position: relative; }
-  .network-svg { width: 100%; height: 220px; }
-
-  /* Step controls */
-  .step-panel { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
-  .step-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-  .step-label { font-family: var(--mono); font-size: 10px; color: var(--muted); min-width: 80px; }
-  .action-btns { display: flex; gap: 6px; }
-  .action-btn { flex: 1; padding: 8px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--mono); font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.15s; text-align: center; }
-  .action-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .action-btn.selected { border-color: var(--accent); background: rgba(0,212,255,0.1); color: var(--accent); }
-  .submit-btn { width: 100%; padding: 10px; background: var(--accent); color: var(--bg); border: none; border-radius: 8px; font-family: var(--mono); font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.15s; letter-spacing: 1px; }
-  .submit-btn:hover { background: #33ddff; }
-  .submit-btn:disabled { background: var(--muted); cursor: not-allowed; }
-
-  /* Stats sidebar */
-  .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--border); }
-  .stat-row:last-child { border-bottom: none; }
-  .stat-label { font-size: 11px; color: var(--muted); }
-  .stat-val { font-family: var(--mono); font-size: 12px; font-weight: 700; }
-  .stat-val.green { color: var(--green); }
-  .stat-val.amber { color: var(--amber); }
-  .stat-val.red { color: var(--red); }
-  .stat-val.blue { color: var(--accent); }
-
-  /* Score arc */
-  .score-wrap { display: flex; flex-direction: column; align-items: center; padding: 16px 0 8px; }
-  .score-arc { position: relative; width: 120px; height: 70px; margin-bottom: 6px; }
-  .score-arc svg { width: 120px; height: 70px; }
-  .score-number { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); font-family: var(--mono); font-size: 22px; font-weight: 700; color: var(--accent); }
-  .score-label { font-size: 10px; color: var(--muted); font-family: var(--mono); letter-spacing: 1px; }
-
-  /* Event badge */
-  .event-tag { display: inline-block; padding: 4px 10px; border-radius: 6px; font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.5px; }
-  .event-normal { background: rgba(0,212,255,0.1); color: var(--accent); border: 1px solid rgba(0,212,255,0.3); }
-  .event-flash { background: rgba(255,171,0,0.1); color: var(--amber); border: 1px solid rgba(255,171,0,0.3); }
-  .event-weather { background: rgba(255,61,87,0.1); color: var(--red); border: 1px solid rgba(255,61,87,0.3); }
-
-  /* Log */
-  .log-area { font-family: var(--mono); font-size: 10px; color: var(--muted); line-height: 1.8; max-height: 130px; overflow-y: auto; }
-  .log-area::-webkit-scrollbar { width: 4px; }
-  .log-area::-webkit-scrollbar-track { background: transparent; }
-  .log-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-  .log-entry { display: flex; gap: 8px; }
-  .log-time { color: var(--muted); min-width: 50px; }
-  .log-msg.good { color: var(--green); }
-  .log-msg.warn { color: var(--amber); }
-  .log-msg.bad { color: var(--red); }
-  .log-msg.info { color: var(--accent); }
-
-  /* Progress bar for episode */
-  .episode-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin: 10px 0 4px; }
-  .episode-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #7b4fff); border-radius: 2px; transition: width 0.4s; }
-
-  /* Reward history sparkline */
-  .sparkline-wrap { margin-top: 6px; }
-  .sparkline-canvas { width: 100%; height: 50px; display: block; }
-
-  /* Incoming panel */
-  .incoming-panel { display: flex; align-items: center; gap: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
-  .incoming-icon { font-size: 24px; }
-  .incoming-val { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--accent2); }
-  .incoming-sub { font-size: 10px; color: var(--muted); margin-top: 2px; }
-
-  /* Offline overlay */
-  .offline-overlay { display: none; position: absolute; inset: 0; background: rgba(10,14,26,0.85); border-radius: 12px; align-items: center; justify-content: center; flex-direction: column; gap: 8px; z-index: 10; }
-  .offline-overlay.show { display: flex; }
-  .offline-msg { font-family: var(--mono); font-size: 12px; color: var(--muted); text-align: center; }
-
-  /* Demo mode banner */
-  .demo-banner { background: rgba(255,171,0,0.08); border: 1px solid rgba(255,171,0,0.3); border-radius: 8px; padding: 8px 14px; margin-bottom: 16px; font-size: 11px; color: var(--amber); font-family: var(--mono); display: flex; align-items: center; gap: 8px; }
-
-  @media (max-width: 800px) {
-    .main-grid { grid-template-columns: 1fr; }
-    .hub-grid { grid-template-columns: repeat(3, 1fr); }
-  }
+@media(max-width:860px){.main{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="w">
 
-  <header>
-    <div class="logo">
-      <div class="logo-icon">LF</div>
-      <div class="logo-text">
-        <h1>LOGIFLOW-RL</h1>
-        <p>Live Environment Visualizer Â· 12-node crisis network</p>
-      </div>
-    </div>
-    <div class="status-pill">
-      <div class="dot" id="statusDot"></div>
-      <span id="statusText" style="font-size:11px;">OFFLINE</span>
-    </div>
-  </header>
-
-  <!-- Server config -->
-  <div class="controls">
-    <input class="server-input" id="serverUrl" type="text" value="http://localhost:8000" placeholder="http://localhost:8000 or HuggingFace Space URL" />
-    <select id="taskSelect">
-      <option value="easy">Easy â€” Steady-State</option>
-      <option value="medium">Medium â€” Flash Sale</option>
-      <option value="hard">Hard â€” Cascading Disruption</option>
-    </select>
-    <button class="btn-primary" onclick="connectAndReset()" style="padding:9px 18px; background:var(--accent); color:var(--bg); border:none; border-radius:8px; font-family:var(--sans); font-size:12px; font-weight:600; cursor:pointer;">âŸ³ Connect &amp; Reset</button>
-    <button class="btn-auto" id="autoBtn" onclick="toggleAuto()" style="padding:9px 18px; background:var(--surface2); border:1px solid var(--border); color:var(--amber); border-radius:8px; font-family:var(--sans); font-size:12px; font-weight:600; cursor:pointer;">â–¶ Auto Play</button>
-    <button class="btn-secondary" onclick="useDemoMode()" style="padding:9px 18px; background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:8px; font-family:var(--sans); font-size:12px; font-weight:600; cursor:pointer;">Demo Mode</button>
-  </div>
-
-  <div class="demo-banner" id="demoBanner" style="display:none;">
-    âš  DEMO MODE â€” Simulating environment locally. To use live data, start your FastAPI server and click Connect.
-  </div>
-
-  <div class="main-grid">
-
-    <!-- LEFT: Main viz -->
-    <div>
-
-      <!-- Hubs -->
-      <div class="card" style="margin-bottom:16px;">
-        <div class="card-header">
-          <span class="card-title">Tier Summary (3 Aggregates)</span>
-          <div style="display:flex;align-items:center;gap:10px;">
-            <span id="eventBadge" class="event-tag event-normal">NORMAL</span>
-            <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">Step <span id="stepCount">â€”</span> / <span id="maxSteps">â€”</span></span>
-          </div>
-        </div>
-        <div class="card-body">
-
-          <!-- Episode progress -->
-          <div class="episode-bar"><div class="episode-fill" id="episodeBar" style="width:0%"></div></div>
-          <div style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-bottom:14px;">Episode progress</div>
-
-          <!-- Hub cards -->
-          <div class="hub-grid" id="hubGrid">
-            <div class="hub-card" id="hub0">
-              <div class="hub-name">Tier 0 Â· Suppliers</div>
-              <div class="hub-load-val" id="hub0val">â€”<span>%</span></div>
-              <div class="bar-track"><div class="bar-fill green" id="hub0bar" style="width:0%"></div></div>
-              <div class="hub-drain" id="hub0drain">Drain: â€”%/step</div>
-              <div class="hub-status-badge badge-optimal" id="hub0badge">OPTIMAL</div>
-            </div>
-            <div class="hub-card" id="hub1">
-              <div class="hub-name">Tier 1 Â· Warehouses</div>
-              <div class="hub-load-val" id="hub1val">â€”<span>%</span></div>
-              <div class="bar-track"><div class="bar-fill green" id="hub1bar" style="width:0%"></div></div>
-              <div class="hub-drain" id="hub1drain">Drain: â€”%/step</div>
-              <div class="hub-status-badge badge-optimal" id="hub1badge">OPTIMAL</div>
-            </div>
-            <div class="hub-card" id="hub2">
-              <div class="hub-name">Tier 2 Â· Downstream</div>
-              <div class="hub-load-val" id="hub2val">â€”<span>%</span></div>
-              <div class="bar-track"><div class="bar-fill green" id="hub2bar" style="width:0%"></div></div>
-              <div class="hub-drain" id="hub2drain">Drain: â€”%/step</div>
-              <div class="hub-status-badge badge-optimal" id="hub2badge">OPTIMAL</div>
-            </div>
-          </div>
-
-          <!-- Network SVG -->
-          <div class="network-wrap">
-            <svg class="network-svg" id="networkSvg" viewBox="0 0 600 180">
-              <defs>
-                <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
-                  <path d="M2 2L8 5L2 8" fill="none" stroke="#1e2d45" stroke-width="2"/>
-                </marker>
-                <marker id="arrActive" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
-                  <path d="M2 2L8 5L2 8" fill="none" stroke="#00d4ff" stroke-width="2"/>
-                </marker>
-              </defs>
-              <!-- Shipment source -->
-              <rect x="20" y="70" width="80" height="40" rx="8" fill="#1a2236" stroke="#1e2d45" stroke-width="1.5"/>
-              <text x="60" y="87" text-anchor="middle" fill="#5a7090" font-family="Space Mono" font-size="9" font-weight="700">INCOMING</text>
-              <text x="60" y="101" text-anchor="middle" fill="#ff6b35" font-family="Space Mono" font-size="13" font-weight="700" id="netIncoming">â€”</text>
-              <!-- Arrows to hubs -->
-              <line x1="100" y1="90" x2="190" y2="55" stroke="#1e2d45" stroke-width="1.5" marker-end="url(#arr)" id="line0"/>
-              <line x1="100" y1="90" x2="190" y2="90" stroke="#1e2d45" stroke-width="1.5" marker-end="url(#arr)" id="line1"/>
-              <line x1="100" y1="90" x2="190" y2="125" stroke="#1e2d45" stroke-width="1.5" marker-end="url(#arr)" id="line2"/>
-              <!-- Hub 0 node -->
-              <rect x="195" y="30" width="100" height="50" rx="8" fill="#111827" stroke="#1e2d45" stroke-width="1.5" id="netHub0"/>
-              <text x="245" y="51" text-anchor="middle" fill="#5a7090" font-family="Space Mono" font-size="9" font-weight="700">HUB 0 Â· ALPHA</text>
-              <text x="245" y="69" text-anchor="middle" fill="#e8edf5" font-family="Space Mono" font-size="15" font-weight="700" id="netHub0val">â€”%</text>
-              <!-- Hub 1 node -->
-              <rect x="195" y="65" width="100" height="50" rx="8" fill="#111827" stroke="#1e2d45" stroke-width="1.5" id="netHub1"/>
-              <text x="245" y="86" text-anchor="middle" fill="#5a7090" font-family="Space Mono" font-size="9" font-weight="700">HUB 1 Â· BETA</text>
-              <text x="245" y="104" text-anchor="middle" fill="#e8edf5" font-family="Space Mono" font-size="15" font-weight="700" id="netHub1val">â€”%</text>
-              <!-- Hub 2 node -->
-              <rect x="195" y="100" width="100" height="50" rx="8" fill="#111827" stroke="#1e2d45" stroke-width="1.5" id="netHub2"/>
-              <text x="245" y="121" text-anchor="middle" fill="#5a7090" font-family="Space Mono" font-size="9" font-weight="700">HUB 2 Â· GAMMA</text>
-              <text x="245" y="139" text-anchor="middle" fill="#e8edf5" font-family="Space Mono" font-size="15" font-weight="700" id="netHub2val">â€”%</text>
-              <!-- Arrow to delivery -->
-              <line x1="295" y1="55" x2="400" y2="90" stroke="#1e2d45" stroke-width="1.5" marker-end="url(#arr)" id="outLine0"/>
-              <line x1="295" y1="90" x2="400" y2="90" stroke="#1e2d45" stroke-width="1.5" marker-end="url(#arr)" id="outLine1"/>
-              <line x1="295" y1="125" x2="400" y2="90" stroke="#1e2d45" stroke-width="1.5" marker-end="url(#arr)" id="outLine2"/>
-              <!-- Delivery node -->
-              <rect x="405" y="65" width="90" height="50" rx="8" fill="#1a2236" stroke="#1e2d45" stroke-width="1.5"/>
-              <text x="450" y="87" text-anchor="middle" fill="#5a7090" font-family="Space Mono" font-size="9" font-weight="700">DELIVERY</text>
-              <text x="450" y="103" text-anchor="middle" fill="#00e676" font-family="Space Mono" font-size="11" font-weight="700" id="netScore">SCORE: â€”</text>
-              <!-- Optimal zone annotation -->
-              <text x="245" y="162" text-anchor="middle" fill="#1e2d45" font-family="Space Mono" font-size="9">OPTIMAL ZONE: 30â€“70%</text>
-              <line x1="200" y1="170" x2="290" y2="170" stroke="#1e2d45" stroke-width="1" stroke-dasharray="3 2"/>
-            </svg>
-          </div>
-
-        </div>
-      </div>
-
-      <!-- Action panel -->
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">Agent Action</span>
-          <div class="incoming-panel" style="margin:0;padding:6px 12px;">
-            <span style="font-size:16px;">ðŸ“¦</span>
-            <div>
-              <div class="incoming-val" id="incomingVal" style="font-size:15px;">â€”</div>
-              <div class="incoming-sub">Incoming load %</div>
-            </div>
-          </div>
-        </div>
-        <div class="card-body">
-          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-family:var(--mono);">Policy mode:</div>
-          <div style="display:flex;gap:8px;margin-bottom:10px;">
-            <select id="policyMode" style="flex:1;">
-              <option value="heuristic">Heuristic</option>
-              <option value="llm">LLM</option>
-            </select>
-          </div>
-          <div style="margin-top:10px;">
-            <button class="submit-btn" id="submitBtn" onclick="sendAction()" disabled>â†’ RUN POLICY STEP</button>
-          </div>
-          <div style="margin-top:8px; font-family:var(--mono); font-size:10px; color:var(--muted);" id="policyAudit">Source: â€”</div>
-          <div style="margin-top:8px; font-family:var(--mono); font-size:10px; color:var(--muted); min-height:16px;" id="lastMsg"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- RIGHT: Sidebar -->
-    <div>
-
-      <!-- Score -->
-      <div class="card" style="margin-bottom:14px;">
-        <div class="card-header"><span class="card-title">Episode Score</span></div>
-        <div class="card-body">
-          <div class="score-wrap">
-            <div class="score-arc">
-              <svg viewBox="0 0 120 70">
-                <path d="M10 65 A55 55 0 0 1 110 65" fill="none" stroke="#1e2d45" stroke-width="8" stroke-linecap="round"/>
-                <path d="M10 65 A55 55 0 0 1 110 65" fill="none" stroke="#00d4ff" stroke-width="8" stroke-linecap="round"
-                  stroke-dasharray="173" stroke-dashoffset="173" id="scoreArc" style="transition:stroke-dashoffset 0.5s;"/>
-              </svg>
-              <div class="score-number" id="scoreNum">â€”</div>
-            </div>
-            <div class="score-label">CUMULATIVE SCORE</div>
-          </div>
-
-          <div style="margin-top:10px;">
-            <div class="stat-row">
-              <span class="stat-label">Last Reward</span>
-              <span class="stat-val" id="lastReward">â€”</span>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">Bottlenecks</span>
-              <span class="stat-val red" id="bottlenecks">â€”</span>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">Overloaded Nodes</span>
-              <span class="stat-val" id="overloaded">â€”</span>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">Task</span>
-              <span class="stat-val blue" id="taskName">â€”</span>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">Difficulty</span>
-              <span class="stat-val" id="difficulty">â€”</span>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">In Transit</span>
-              <span class="stat-val amber" id="inTransit">â€”</span>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">Retail Delivered</span>
-              <span class="stat-val green" id="retailDelivered">â€”</span>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">SLA Success</span>
-              <span class="stat-val blue" id="slaSuccess">â€”</span>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">Dynamic Pressure</span>
-              <span class="stat-val amber" id="dynamicPressure">â€”</span>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">Priority Target</span>
-              <span class="stat-val" id="priorityTarget">â€”</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Full node state -->
-      <div class="card" style="margin-bottom:14px;">
-        <div class="card-header">
-          <span class="card-title">12-Node Live State</span>
-          <span id="nodeGridMeta" style="font-family:var(--mono);font-size:10px;color:var(--muted);">-</span>
-        </div>
-        <div class="card-body" style="padding:12px;">
-          <div class="node-grid" id="nodeGrid"></div>
-        </div>
-      </div>
-
-      <!-- Reward sparkline -->
-      <div class="card" style="margin-bottom:14px;">
-        <div class="card-header"><span class="card-title">Reward History</span></div>
-        <div class="card-body" style="padding:12px;">
-          <canvas class="sparkline-canvas" id="sparkline" height="50"></canvas>
-        </div>
-      </div>
-
-      <!-- Objective -->
-      <div class="card" style="margin-bottom:14px;">
-        <div class="card-header"><span class="card-title">Task Objective</span></div>
-        <div class="card-body">
-          <p style="font-size:11px;color:var(--muted);line-height:1.7;" id="objective">Connect to environment to see task objective.</p>
-        </div>
-      </div>
-
-      <!-- Log -->
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">Event Log</span>
-          <button onclick="clearLog()" style="font-size:9px;color:var(--muted);background:none;border:none;cursor:pointer;font-family:var(--mono);">CLEAR</button>
-        </div>
-        <div class="card-body" style="padding:10px 14px;">
-          <div class="log-area" id="logArea"></div>
-        </div>
-      </div>
-
+<!-- header -->
+<header>
+  <div class="logo">
+    <div class="li">LF</div>
+    <div class="lt">
+      <h1>LogiFlow-RL</h1>
+      <p>12-Node Supply Chain · GRPO Trained Agent</p>
     </div>
   </div>
+  <div class="badge">
+    <div class="dot" id="dot"></div>
+    <span id="statusTxt">READY</span>
+  </div>
+</header>
+
+<!-- START BANNER — shown first, hidden once demo starts -->
+<div id="startBanner">
+  <div>
+    <h2>▶ Watch the Trained GRPO Agent Play</h2>
+    <p>No server needed — simulates checkpoint-140 locally in your browser</p>
+  </div>
+  <button class="btn-start" onclick="startAndPlay()">
+    🎮 Start Demo
+  </button>
 </div>
 
-<script>
-  // â”€â”€ State â”€â”€
-  let obs = null;
-  let rewardHistory = [];
-  let autoInterval = null;
-  let demoMode = false;
-  let demoStep = 0;
+<!-- controls (hidden until demo starts) -->
+<div class="ctrl" id="ctrlRow" style="display:none;">
+  <input type="text" id="srvUrl" value="http://localhost:8000" placeholder="FastAPI / HF Space URL"/>
+  <select id="taskSel">
+    <option value="easy">Easy — 50 steps</option>
+    <option value="medium">Medium — 70 steps</option>
+    <option value="hard" selected>Hard — 90 steps</option>
+  </select>
+  <button class="btn bp" onclick="connectLive()">⟳ Connect Live</button>
+  <button class="btn bplay" id="playBtn" onclick="toggleAuto()">⏸ Pause</button>
+  <button class="btn bs"   onclick="resetEp()">↺ Reset</button>
+</div>
 
-  // Demo data simulating the easy task from tasks.py
-  const DEMO_TASKS = {
-    easy: { initial_loads:[28,42,35], drain_rates:[8,7,6], incoming:[9,8,11,10,9,12,8,10,9,11,8,10], events:Array(12).fill('normal'), max_steps:12 },
-    medium: { initial_loads:[34,48,31], drain_rates:[8,7,6], incoming:[10,12,18,22,20,16,11,13,17,14,10,9,8,10], events:['normal','normal','flash_sale','flash_sale','flash_sale','weather_disruption','normal','normal','flash_sale','weather_disruption','normal','normal','normal','normal'], max_steps:14 },
-    hard: { initial_loads:[45,57,40], drain_rates:[8,7,6], incoming:[16,22,19,24,18,20,23,14,25,17,15,21,13,18,14,12], events:['weather_disruption','flash_sale','weather_disruption','flash_sale','normal','weather_disruption','flash_sale','normal','flash_sale','weather_disruption','normal','flash_sale','normal','weather_disruption','normal','normal'], max_steps:16 }
-  };
-  let demoState = null;
+<div class="main">
 
-  // â”€â”€ API â”€â”€
-  function serverUrl() { return document.getElementById('serverUrl').value.replace(/\/$/, ''); }
-  function taskId() { return document.getElementById('taskSelect').value; }
+  <!-- LEFT: network -->
+  <div class="card">
+    <div class="ch">
+      <span class="ct">Live 12-Node Supply Chain</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="ev en" id="evBadge">✓ NORMAL</span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--dim);">
+          Step&nbsp;<span id="sNum">0</span>/<span id="sMax">90</span>
+        </span>
+      </div>
+    </div>
+    <div class="cb">
+      <div class="epbar"><div class="epfill" id="epFill" style="width:0%"></div></div>
+      <div class="eplbl" id="epLbl">Press Start Demo above</div>
+      <div style="height:9px;"></div>
 
-  async function apiCall(path, method='GET', body=null) {
-    const opts = { method, headers: {'Content-Type':'application/json'} };
-    if (body) opts.body = JSON.stringify(body);
-    const r = await fetch(serverUrl() + path, opts);
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return r.json();
-  }
+      <!-- 12-node SVG -->
+      <svg class="net" viewBox="0 0 780 420" id="svg">
+        <defs>
+          <marker id="ma" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M2 2L8 5L2 8" fill="none" stroke="#334155" stroke-width="1.5"/>
+          </marker>
+          <marker id="mb" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M2 2L8 5L2 8" fill="none" stroke="#00e5ff" stroke-width="2"/>
+          </marker>
+        </defs>
 
-  // â”€â”€ Connect & Reset â”€â”€
-  async function connectAndReset() {
-    demoMode = false;
-    document.getElementById('demoBanner').style.display = 'none';
-    log('Connecting to ' + serverUrl() + '...', 'info');
-    try {
-      await apiCall('/health');
-      setStatus(true);
-      log('Connected âœ“', 'good');
-      await resetEnv();
-    } catch(e) {
-      setStatus(false);
-      log('Cannot reach server: ' + e.message, 'bad');
-      log('Tip: Run "uvicorn crisis_logistics_env.server.app:app --reload" or use Demo Mode', 'warn');
-    }
-  }
+        <!-- tier labels -->
+        <text class="tl" x="88" y="15">SUPPLIERS</text>
+        <text class="tl" x="295" y="15">WAREHOUSES</text>
+        <text class="tl" x="497" y="15">DIST. CENTRES</text>
+        <text class="tl" x="689" y="15">RETAIL</text>
+        <line x1="183" y1="19" x2="183" y2="405" stroke="rgba(255,255,255,0.035)" stroke-width="1"/>
+        <line x1="388" y1="19" x2="388" y2="405" stroke="rgba(255,255,255,0.035)" stroke-width="1"/>
+        <line x1="588" y1="19" x2="588" y2="405" stroke="rgba(255,255,255,0.035)" stroke-width="1"/>
 
-  async function resetEnv() {
-    try {
-      const res = await apiCall('/reset', 'POST', { task_id: taskId() });
-      obs = res.observation;
-      rewardHistory = [];
-      demoStep = 0;
-            updateUI();
-      log(`Episode reset â†’ task: ${obs.task_id}`, 'info');
-      document.getElementById('submitBtn').disabled = false;
-      document.getElementById('policyAudit').textContent = 'Source: -';
-    } catch(e) { log('Reset failed: ' + e.message, 'bad'); }
-  }
+        <!-- EDGES: suppliers → warehouses (purple) -->
+        <line class="edge" stroke="#7c3aed" id="e04" x1="140" y1="66"  x2="252" y2="110" marker-end="url(#ma)"/>
+        <line class="edge" stroke="#7c3aed" id="e05" x1="140" y1="66"  x2="252" y2="200" marker-end="url(#ma)"/>
+        <line class="edge" stroke="#7c3aed" id="e14" x1="140" y1="160" x2="252" y2="110" marker-end="url(#ma)"/>
+        <line class="edge" stroke="#7c3aed" id="e16" x1="140" y1="160" x2="252" y2="290" marker-end="url(#ma)"/>
+        <line class="edge" stroke="#7c3aed" id="e25" x1="140" y1="253" x2="252" y2="200" marker-end="url(#ma)"/>
+        <line class="edge" stroke="#7c3aed" id="e26" x1="140" y1="253" x2="252" y2="290" marker-end="url(#ma)"/>
+        <line class="edge" stroke="#7c3aed" id="e34" x1="140" y1="346" x2="252" y2="110" marker-end="url(#ma)"/>
+        <line class="edge" stroke="#7c3aed" id="e35" x1="140" y1="346" x2="252" y2="200" marker-end="url(#ma)"/>
+        <line class="edge" stroke="#7c3aed" id="e36" x1="140" y1="346" x2="252" y2="290" marker-end="url(#ma)"/>
 
-  async function sendAction() {
-    const mode = (document.getElementById('policyMode')?.value || 'heuristic');
-    try {
-      const res = await apiCall('/policy_step', 'POST', { mode: mode });
-      obs = res.observation;
-      rewardHistory.push(obs.last_reward);
-      const action = res.action || obs.last_action || {};
-      const routeText = action.source_node !== undefined
-        ? `${action.source_node}->${action.dest_node} vol=${Number(action.shipment_volume || 0).toFixed(1)}`
-        : 'unstructured action';
-      const audit = res.action_source === 'llm'
-        ? `Source: LLM (${res.llm_model || 'model'})`
-        : 'Source: Heuristic';
-      document.getElementById('policyAudit').textContent = audit;
-      if (res.action_source === 'llm' && res.llm_raw_output) {
-        log(`LLM raw: ${String(res.llm_raw_output).slice(0, 120).replaceAll('\n', ' ')}`, 'info');
-      }
-      log(
-        `Step ${obs.step_count}: [${(res.action_source || mode).toUpperCase()}] ${routeText} | reward ${obs.last_reward.toFixed(3)} | ${obs.event_label}`,
-        obs.last_reward > 0.5 ? 'good' : obs.last_reward > 0.2 ? 'warn' : 'bad'
-      );
-      updateUI();
-      if (obs.done) {
-        log(`Episode complete! Final score: ${obs.cumulative_score.toFixed(3)}`, 'good');
-        document.getElementById('submitBtn').disabled = true;
-        stopAuto();
-      }
-    } catch(e) {
-      document.getElementById('policyAudit').textContent = `Source: ${mode.toUpperCase()} error`;
-      log(`Policy step failed (${mode}): ${e.message}`, 'bad');
-    }
-  }
-  function useDemoMode() {
-    demoMode = true;
-    document.getElementById('demoBanner').style.display = 'flex';
-    setStatus(true);
-    resetDemo();
-    log('Demo mode activated â€” simulating Phase 1 environment', 'info');
-  }
+        <!-- EDGES: warehouses → DCs (blue) -->
+        <line class="edge" stroke="#0ea5e9" id="e47" x1="342" y1="110" x2="450" y2="146" marker-end="url(#ma)"/>
+        <line class="edge" stroke="#0ea5e9" id="e48" x1="342" y1="110" x2="450" y2="246" marker-end="url(#ma)"/>
+        <line class="edge" stroke="#0ea5e9" id="e58" x1="342" y1="200" x2="450" y2="246" marker-end="url(#ma)"/>
+        <line class="edge" stroke="#0ea5e9" id="e59" x1="342" y1="200" x2="450" y2="346" marker-end="url(#ma)"/>
+        <line class="edge" stroke="#0ea5e9" id="e67" x1="342" y1="290" x2="450" y2="146" marker-end="url(#ma)"/>
+        <line class="edge" stroke="#0ea5e9" id="e69" x1="342" y1="290" x2="450" y2="346" marker-end="url(#ma)"/>
 
-  function resetDemo() {
-    const task = DEMO_TASKS[taskId()];
-    demoState = {
-      hub_loads: [...task.initial_loads],
-      drain_rates: [...task.drain_rates],
-      step: 0,
-      max_steps: task.max_steps,
-      incoming: task.incoming,
-      events: task.events,
-      bottlenecks: 0,
-      score: 0,
-      task_id: taskId()
-    };
-    rewardHistory = [];
-        buildDemoObs(0);
-    updateUI();
-    document.getElementById('submitBtn').disabled = false;
-      document.getElementById('policyAudit').textContent = 'Source: -';
-    log(`Demo reset â†’ task: ${taskId()}`, 'info');
-  }
+        <!-- EDGES: DCs → Retail (amber) -->
+        <line class="edge" stroke="#f59e0b" id="e710"  x1="540" y1="146" x2="644" y2="165" marker-end="url(#ma)"/>
+        <line class="edge" stroke="#f59e0b" id="e810"  x1="540" y1="246" x2="644" y2="165" marker-end="url(#ma)"/>
+        <line class="edge" stroke="#f59e0b" id="e811"  x1="540" y1="246" x2="644" y2="285" marker-end="url(#ma)"/>
+        <line class="edge" stroke="#f59e0b" id="e911"  x1="540" y1="346" x2="644" y2="285" marker-end="url(#ma)"/>
 
-  function buildDemoObs(incoming) {
-    const s = demoState;
-    const overloaded = s.hub_loads.filter(l => l > 100).length;
-    const balanceGap = Math.max(...s.hub_loads) - Math.min(...s.hub_loads);
-    const reward = Math.max(0, 1 - overloaded * 0.3 - balanceGap / 100);
-    obs = {
-      task_id: s.task_id, difficulty: s.task_id,
-      hub_loads: [...s.hub_loads], drain_rates: [...s.drain_rates],
-      incoming_load: incoming, step_count: s.step, max_steps: s.max_steps,
-      overloaded_hubs: overloaded, cumulative_score: s.score,
-      last_reward: s.step === 0 ? 0 : reward,
-      event_label: s.step < s.events.length ? s.events[s.step] : 'normal',
-      message: `Step ${s.step}: Balance gap ${balanceGap.toFixed(1)}%`,
-      objective: s.task_id === 'easy' ? 'Keep all hubs in the 30â€“70% utilization band.' : s.task_id === 'medium' ? 'Absorb the flash-sale surge without any hub overloading.' : 'Stabilize through repeated surge waves and weather disruptions.',
-      done: s.step >= s.max_steps
-    };
-  }
+        <!-- NODE 0: Supplier North -->
+        <g id="n0"><rect class="nb s" x="88" y="43" width="104" height="46" rx="8"/>
+          <rect fill="rgba(0,0,0,.3)" x="93" y="80" width="94" height="5" rx="2"/>
+          <rect id="b0" x="93" y="80" width="0" height="5" rx="2" fill="#7c3aed"/>
+          <text class="nl" x="140" y="58">Node 0</text>
+          <text class="nt" x="140" y="68">Supplier North</text>
+          <text class="nv" id="v0" x="140" y="79" fill="#e2e8f0">—</text></g>
 
-  function chooseBestHub(loads) {
-    let best = 0;
-    for (let i = 1; i < loads.length; i++) {
-      if (loads[i] < loads[best]) best = i;
-    }
-    return best;
-  }
+        <!-- NODE 1: Supplier West -->
+        <g id="n1"><rect class="nb s" x="88" y="137" width="104" height="46" rx="8"/>
+          <rect fill="rgba(0,0,0,.3)" x="93" y="174" width="94" height="5" rx="2"/>
+          <rect id="b1" x="93" y="174" width="0" height="5" rx="2" fill="#7c3aed"/>
+          <text class="nl" x="140" y="152">Node 1</text>
+          <text class="nt" x="140" y="162">Supplier West</text>
+          <text class="nv" id="v1" x="140" y="173" fill="#e2e8f0">—</text></g>
 
-  function demoAction(hub) {
-    const s = demoState;
-    const step = s.step;
-    if (step >= s.max_steps) return;
-    const incoming = s.incoming[step];
-    for (let i = 0; i < 3; i++) {
-      if (i !== hub) s.hub_loads[i] = Math.max(0, s.hub_loads[i] - s.drain_rates[i]);
-    }
-    s.hub_loads[hub] = Math.min(120, s.hub_loads[hub] + incoming);
-    const overloaded = s.hub_loads.filter((l) => l > 100).length;
-    if (overloaded > 0) s.bottlenecks++;
-    const balanceGap = Math.max(...s.hub_loads) - Math.min(...s.hub_loads);
-    const reward = Math.max(0, 1 - overloaded * 0.3 - balanceGap / 100);
-    s.score = (s.score * step + reward) / (step + 1);
-    s.step++;
-    const nextIncoming = step + 1 < s.incoming.length ? s.incoming[step + 1] : 0;
-    buildDemoObs(nextIncoming);
-    rewardHistory.push(reward);
-    log(`Step ${step + 1}: -> Hub ${hub} | reward ${reward.toFixed(3)} | ${obs.event_label}`, reward > 0.6 ? 'good' : reward > 0.3 ? 'warn' : 'bad');
-    updateUI();
-    if (obs.done) {
-      log(`Episode complete! Final score: ${s.score.toFixed(3)}`, 'good');
-      document.getElementById('submitBtn').disabled = true;
-      stopAuto();
-    }
-  }
+        <!-- NODE 2: Supplier Port -->
+        <g id="n2"><rect class="nb s" x="88" y="230" width="104" height="46" rx="8"/>
+          <rect fill="rgba(0,0,0,.3)" x="93" y="267" width="94" height="5" rx="2"/>
+          <rect id="b2" x="93" y="267" width="0" height="5" rx="2" fill="#7c3aed"/>
+          <text class="nl" x="140" y="245">Node 2</text>
+          <text class="nt" x="140" y="255">Supplier Port</text>
+          <text class="nv" id="v2" x="140" y="266" fill="#e2e8f0">—</text></g>
 
-  function sendActionWrapper() {
-    if (demoMode) {
-      const loads = Array.isArray(obs?.hub_loads) ? obs.hub_loads : [0, 0, 0];
-      const hub = chooseBestHub(loads);
-      demoAction(hub);
-      return;
-    }
-    sendAction();
-  }
-  document.getElementById('submitBtn').onclick = sendActionWrapper;
+        <!-- NODE 3: Supplier Inland -->
+        <g id="n3"><rect class="nb s" x="88" y="323" width="104" height="46" rx="8"/>
+          <rect fill="rgba(0,0,0,.3)" x="93" y="360" width="94" height="5" rx="2"/>
+          <rect id="b3" x="93" y="360" width="0" height="5" rx="2" fill="#7c3aed"/>
+          <text class="nl" x="140" y="338">Node 3</text>
+          <text class="nt" x="140" y="348">Supplier Inland</text>
+          <text class="nv" id="v3" x="140" y="359" fill="#e2e8f0">—</text></g>
 
-  function toggleAuto() {
-    if (autoInterval) { stopAuto(); return; }
-    const btn = document.getElementById('autoBtn');
-    btn.textContent = 'Pause Auto';
-    btn.style.borderColor = 'var(--amber)';
-    btn.style.background = 'rgba(255,171,0,0.1)';
-    autoInterval = setInterval(() => {
-      if (!obs || obs.done) { stopAuto(); return; }
-      if (demoMode) {
-        const loads = Array.isArray(obs.hub_loads) ? obs.hub_loads : [0, 0, 0];
-        demoAction(chooseBestHub(loads));
-      } else {
-        sendAction();
-      }
-    }, 900);
-  }
+        <!-- NODE 4: WH Alpha -->
+        <g id="n4"><rect class="nb wh" x="250" y="87" width="104" height="46" rx="8"/>
+          <rect fill="rgba(0,0,0,.3)" x="255" y="124" width="94" height="5" rx="2"/>
+          <rect id="b4" x="255" y="124" width="0" height="5" rx="2" fill="#0ea5e9"/>
+          <text class="nl" x="302" y="102">Node 4</text>
+          <text class="nt" x="302" y="112">WH Alpha</text>
+          <text class="nv" id="v4" x="302" y="123" fill="#e2e8f0">—</text></g>
 
-  function stopAuto() {
-    if (autoInterval) { clearInterval(autoInterval); autoInterval = null; }
-    const btn = document.getElementById('autoBtn');
-    btn.textContent = 'Auto Play';
-    btn.style.borderColor = 'var(--border)';
-    btn.style.background = 'var(--surface2)';
-  }
-  function esc(text) {
-    return String(text ?? '')
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#39;');
-  }
+        <!-- NODE 5: WH Beta -->
+        <g id="n5"><rect class="nb wh" x="250" y="177" width="104" height="46" rx="8"/>
+          <rect fill="rgba(0,0,0,.3)" x="255" y="214" width="94" height="5" rx="2"/>
+          <rect id="b5" x="255" y="214" width="0" height="5" rx="2" fill="#0ea5e9"/>
+          <text class="nl" x="302" y="192">Node 5</text>
+          <text class="nt" x="302" y="202">WH Beta</text>
+          <text class="nv" id="v5" x="302" y="213" fill="#e2e8f0">—</text></g>
 
-  function renderNodeGrid() {
-    const grid = document.getElementById('nodeGrid');
-    const meta = document.getElementById('nodeGridMeta');
-    if (!grid || !meta) return;
+        <!-- NODE 6: WH Gamma -->
+        <g id="n6"><rect class="nb wh" x="250" y="267" width="104" height="46" rx="8"/>
+          <rect fill="rgba(0,0,0,.3)" x="255" y="304" width="94" height="5" rx="2"/>
+          <rect id="b6" x="255" y="304" width="0" height="5" rx="2" fill="#0ea5e9"/>
+          <text class="nl" x="302" y="282">Node 6</text>
+          <text class="nt" x="302" y="292">WH Gamma</text>
+          <text class="nv" id="v6" x="302" y="303" fill="#e2e8f0">—</text></g>
 
-    const nodeLoads = Array.isArray(obs.node_loads) ? obs.node_loads : [];
-    const capacities = Array.isArray(obs.node_capacities) ? obs.node_capacities : [];
-    const nodeNames = Array.isArray(obs.node_names) ? obs.node_names : [];
-    const nodeTypes = Array.isArray(obs.node_types) ? obs.node_types : [];
-    const visibleSet = new Set(Array.isArray(obs.visible_node_ids) ? obs.visible_node_ids : []);
-    const disruptions = Array.isArray(obs.active_disruptions) ? obs.active_disruptions : [];
-    const disruptedSet = new Set(disruptions.map((d) => Number(d.node_id)));
+        <!-- NODE 7: DC Metro -->
+        <g id="n7"><rect class="nb dc" x="448" y="123" width="104" height="46" rx="8"/>
+          <rect fill="rgba(0,0,0,.3)" x="453" y="160" width="94" height="5" rx="2"/>
+          <rect id="b7" x="453" y="160" width="0" height="5" rx="2" fill="#f59e0b"/>
+          <text class="nl" x="500" y="138">Node 7</text>
+          <text class="nt" x="500" y="148">DC Metro</text>
+          <text class="nv" id="v7" x="500" y="159" fill="#e2e8f0">—</text></g>
 
-    if (!nodeLoads.length || !capacities.length) {
-      meta.textContent = 'legacy mode';
-      grid.innerHTML = '<div class="node-chip" style="grid-column:1/-1;font-size:10px;color:var(--muted);">Live node fields are unavailable in this mode.</div>';
-      return;
-    }
+        <!-- NODE 8: DC Central -->
+        <g id="n8"><rect class="nb dc" x="448" y="223" width="104" height="46" rx="8"/>
+          <rect fill="rgba(0,0,0,.3)" x="453" y="260" width="94" height="5" rx="2"/>
+          <rect id="b8" x="453" y="260" width="0" height="5" rx="2" fill="#f59e0b"/>
+          <text class="nl" x="500" y="238">Node 8</text>
+          <text class="nt" x="500" y="248">DC Central</text>
+          <text class="nv" id="v8" x="500" y="259" fill="#e2e8f0">—</text></g>
 
-    const overloadedCount = nodeLoads.filter((load, i) => Number(load) > Number(capacities[i] || 1)).length;
-    meta.textContent = `${nodeLoads.length} nodes | ${overloadedCount} overloaded`;
+        <!-- NODE 9: DC Coastal -->
+        <g id="n9"><rect class="nb dc" x="448" y="323" width="104" height="46" rx="8"/>
+          <rect fill="rgba(0,0,0,.3)" x="453" y="360" width="94" height="5" rx="2"/>
+          <rect id="b9" x="453" y="360" width="0" height="5" rx="2" fill="#f59e0b"/>
+          <text class="nl" x="500" y="338">Node 9</text>
+          <text class="nt" x="500" y="348">DC Coastal</text>
+          <text class="nv" id="v9" x="500" y="359" fill="#e2e8f0">—</text></g>
 
-    const cards = nodeLoads.map((load, index) => {
-      const cap = Number(capacities[index] || 1);
-      const loadNum = Number(load || 0);
-      const util = Math.max(0, (loadNum / Math.max(cap, 1)) * 100);
-      const isVisible = !visibleSet.size || visibleSet.has(index);
-      const isOverloaded = loadNum > cap;
-      const meterClass = util > 100 ? 'bad' : util > 75 ? 'warn' : 'ok';
-      const nodeType = String(nodeTypes[index] || 'node');
-      const nodeName = String(nodeNames[index] || `Node ${index}`);
-      const flags = [];
-      if (!isVisible) flags.push('hidden');
-      if (disruptedSet.has(index)) flags.push('disrupted');
+        <!-- NODE 10: Retail North -->
+        <g id="n10"><rect class="nb rt" x="642" y="142" width="110" height="46" rx="8"/>
+          <rect fill="rgba(0,0,0,.3)" x="647" y="179" width="100" height="5" rx="2"/>
+          <rect id="b10" x="647" y="179" width="0" height="5" rx="2" fill="#10b981"/>
+          <text class="nl" x="697" y="157">Node 10</text>
+          <text class="nt" x="697" y="167">Retail North</text>
+          <text class="nv" id="v10" x="697" y="178" fill="#e2e8f0">—</text></g>
 
-      return `
-        <div class="node-chip ${isVisible ? 'visible' : 'hidden'} ${isOverloaded ? 'overload' : ''}">
-          <div class="node-head">
-            <span class="node-id">N${index}</span>
-            <span class="node-type ${esc(nodeType)}">${esc(nodeType)}</span>
-          </div>
-          <div class="node-name" title="${esc(nodeName)}">${esc(nodeName)}</div>
-          <div class="node-metrics">
-            <span>${loadNum.toFixed(1)}</span>
-            <span>${util.toFixed(0)}%</span>
-          </div>
-          <div class="node-meter">
-            <div class="node-meter-fill ${meterClass}" style="width:${Math.min(util, 100)}%"></div>
-          </div>
-          <div class="node-flags">${flags.length ? flags.join(' | ') : '&nbsp;'}</div>
+        <!-- NODE 11: Retail South -->
+        <g id="n11"><rect class="nb rt" x="642" y="262" width="110" height="46" rx="8"/>
+          <rect fill="rgba(0,0,0,.3)" x="647" y="299" width="100" height="5" rx="2"/>
+          <rect id="b11" x="647" y="299" width="0" height="5" rx="2" fill="#10b981"/>
+          <text class="nl" x="697" y="277">Node 11</text>
+          <text class="nt" x="697" y="287">Retail South</text>
+          <text class="nv" id="v11" x="697" y="298" fill="#e2e8f0">—</text></g>
+
+        <!-- particle layer -->
+        <g id="ptl"></g>
+      </svg>
+
+      <!-- legend -->
+      <div class="legend">
+        <div><div class="lsq" style="background:#7c3aed;"></div>Supplier</div>
+        <div><div class="lsq" style="background:#0ea5e9;"></div>Warehouse</div>
+        <div><div class="lsq" style="background:#f59e0b;"></div>Dist. Centre</div>
+        <div><div class="lsq" style="background:#10b981;"></div>Retail</div>
+        <div style="color:var(--red);">■ Overloaded (&gt;100%)</div>
+        <div style="color:var(--amber);">■ Warning (&gt;70%)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: sidebar -->
+  <div class="sidebar">
+
+    <!-- score arc -->
+    <div class="card">
+      <div class="ch"><span class="ct">Episode Score</span></div>
+      <div class="score-center">
+        <div class="arc-wrap">
+          <svg viewBox="0 0 108 64" width="108" height="64">
+            <path d="M9 59 A45 45 0 0 1 99 59" fill="none"
+              stroke="rgba(255,255,255,0.06)" stroke-width="7" stroke-linecap="round"/>
+            <path d="M9 59 A45 45 0 0 1 99 59" fill="none"
+              stroke="var(--accent)" stroke-width="7" stroke-linecap="round"
+              stroke-dasharray="141" stroke-dashoffset="141"
+              id="arc" style="transition:stroke-dashoffset .5s,stroke .3s;"/>
+          </svg>
+          <div class="arc-val" id="arcVal">—</div>
         </div>
-      `;
-    });
+        <div class="arc-lbl">Cumulative Score</div>
+      </div>
+    </div>
 
-    grid.innerHTML = cards.join('');
+    <!-- metrics grid -->
+    <div class="card">
+      <div class="ch"><span class="ct">Live Metrics</span></div>
+      <div class="cb">
+        <div class="sg">
+          <div class="sb"><div class="sbl">Last Reward</div><div class="sbv cb2" id="mLR">—</div></div>
+          <div class="sb"><div class="sbl">Incoming</div><div class="sbv ca" id="mIn">—</div></div>
+          <div class="sb"><div class="sbl">Overloaded</div><div class="sbv cr" id="mOL">0</div></div>
+          <div class="sb"><div class="sbl">Disruptions</div><div class="sbv cr" id="mDis">0</div></div>
+          <div class="sb"><div class="sbl">Bottlenecks</div><div class="sbv ca" id="mBN">0</div></div>
+          <div class="sb"><div class="sbl">In Transit</div><div class="sbv cg" id="mIT">0</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- agent reasoning -->
+    <div class="card">
+      <div class="ch">
+        <span class="ct">Agent Reasoning</span>
+        <span style="font-size:9px;font-family:var(--mono);color:var(--dim);">GRPO·ckpt-140</span>
+      </div>
+      <div class="cb">
+        <div class="rsn" id="rsn">Waiting for agent to start...</div>
+        <div class="actionrow">
+          <span style="color:var(--dim);">src:</span>
+          <span id="aSrc" style="color:var(--accent);">—</span>
+          <span style="color:var(--dim);">→ dst:</span>
+          <span id="aDst" style="color:var(--green);">—</span>
+          <span style="color:var(--dim);">vol:</span>
+          <span id="aVol" style="color:var(--amber);">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- sparkline -->
+    <div class="card">
+      <div class="ch"><span class="ct">Reward History</span></div>
+      <div class="cb" style="padding:10px 12px;">
+        <canvas class="spkc" id="spk" height="44"></canvas>
+      </div>
+    </div>
+
+    <!-- log -->
+    <div class="card">
+      <div class="ch">
+        <span class="ct">Event Log</span>
+        <button onclick="clearLog()"
+          style="background:none;border:none;color:var(--dim);
+                 font-size:9px;font-family:var(--mono);cursor:pointer;">CLEAR</button>
+      </div>
+      <div class="cb" style="padding:9px 13px;">
+        <div class="log" id="logArea"></div>
+      </div>
+    </div>
+
+  </div><!-- /sidebar -->
+</div><!-- /main -->
+</div><!-- /wrap -->
+
+<script>
+// ── constants ──────────────────────────────────────────────────────────────
+const NP = [
+  [140,66],[140,160],[140,253],[140,346],   // suppliers
+  [302,110],[302,200],[302,290],             // warehouses
+  [500,146],[500,246],[500,346],             // DCs
+  [697,165],[697,285]                        // retail
+];
+const CONN = {
+  0:[4,5], 1:[4,6], 2:[5,6], 3:[4,5,6],
+  4:[7,8], 5:[8,9], 6:[7,9],
+  7:[10],  8:[10,11], 9:[11],
+  10:[], 11:[]
+};
+const NAMES = [
+  'Supplier North','Supplier West','Supplier Port','Supplier Inland',
+  'WH Alpha','WH Beta','WH Gamma',
+  'DC Metro','DC Central','DC Coastal',
+  'Retail North','Retail South'
+];
+const BAR_X = [93,93,93,93,255,255,255,453,453,453,647,647];
+const BAR_Y = [80,174,267,360,124,214,304,160,260,360,179,299];
+const BAR_W = 94;
+const COL   = ['#7c3aed','#7c3aed','#7c3aed','#7c3aed',
+               '#0ea5e9','#0ea5e9','#0ea5e9',
+               '#f59e0b','#f59e0b','#f59e0b',
+               '#10b981','#10b981'];
+
+// ── state ──────────────────────────────────────────────────────────────────
+let autoTimer = null;
+let rewards   = [];
+let liveMode  = false;
+let obs       = null;
+
+// demo world state
+let ds = {
+  loads:[45,52,38,44,55,48,41,35,42,30,15,12],
+  step:0, max:90, score:0, bn:0, dis:[], lr:0, inc:16.5, src:2
+};
+
+// ── entry point ────────────────────────────────────────────────────────────
+function startAndPlay() {
+  document.getElementById('startBanner').style.display = 'none';
+  document.getElementById('ctrlRow').style.display     = 'flex';
+  setStatus(true, 'DEMO');
+  resetDemo();
+  log('Demo mode started — GRPO agent (checkpoint-140)', 'i');
+  // auto-play immediately
+  startAutoPlay();
+}
+
+function startAutoPlay() {
+  if (autoTimer) return;
+  const b = document.getElementById('playBtn');
+  b.textContent = '⏸ Pause'; b.classList.add('on');
+  autoTimer = setInterval(step, 1100);
+}
+
+function stopAuto() {
+  if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+  const b = document.getElementById('playBtn');
+  b.textContent = '▶ Play'; b.classList.remove('on');
+}
+
+function toggleAuto() {
+  if (autoTimer) { stopAuto(); } else { startAutoPlay(); }
+}
+
+// ── demo physics ───────────────────────────────────────────────────────────
+function resetDemo() {
+  ds = {
+    loads:[45,52,38,44,55,48,41,35,42,30,15,12],
+    step:0, max:90, score:0, bn:0, dis:[], lr:0, inc:16.5, src:2
+  };
+  rewards = [];
+  buildObs();
+  updateUI();
+  log('Episode reset — hard task (90 steps)', 'i');
+}
+
+function visibleFrom(src) {
+  const s = new Set([src]);
+  (CONN[src]||[]).forEach(n => { s.add(n); (CONN[n]||[]).forEach(m => s.add(m)); });
+  return [...s];
+}
+
+function buildObs() {
+  const s  = ds;
+  const ol = s.loads.filter(l => l > 100).length;
+  obs = {
+    task_id:'hard', max_steps:s.max, step_count:s.step,
+    node_loads: s.loads.map(l => +l.toFixed(1)),
+    observed_node_loads: s.loads.map((l, i) =>
+      visibleFrom(s.src).includes(i) ? +l.toFixed(1) : null),
+    visible_node_ids: visibleFrom(s.src),
+    active_disruptions: s.dis,
+    overloaded_hubs: ol,
+    bottlenecks: s.bn,
+    cumulative_score: +s.score.toFixed(3),
+    last_reward: +s.lr.toFixed(3),
+    incoming_load: +s.inc.toFixed(1),
+    pending_source_node: s.src,
+    event_label: s.dis.length > 0 ? 'weather_disruption' : 'normal',
+    in_transit_shipments: [],
+    done: s.step >= s.max
+  };
+}
+
+// ── GRPO agent (simulates checkpoint-140 behaviour) ────────────────────────
+function agentDecide() {
+  const src   = ds.src;
+  const dests = CONN[src] || [];
+  const loads = ds.loads;
+  const disN  = ds.dis.map(d => d.node);
+
+  // Terminal retail nodes — no downstream routing
+  if (dests.length === 0) {
+    return { reasoning: NAMES[src] + ' is retail — terminal node, no routing.',
+             src: src, dst: src, vol: 0 };
   }
 
-  function updateUI() {
-    if (!obs) return;
-    const loads = obs.hub_loads;
-    const drains = obs.drain_rates;
-
-    // Hub cards
-    for (let i = 0; i < 3; i++) {
-      const load = loads[i];
-      const pct = Math.min(load, 120);
-      document.getElementById(`hub${i}val`).childNodes[0].textContent = load.toFixed(1);
-      document.getElementById(`hub${i}drain`).textContent = `Drain: ${drains[i]}%/step`;
-      const bar = document.getElementById(`hub${i}bar`);
-      bar.style.width = Math.min(pct, 100) + '%';
-      bar.className = 'bar-fill ' + (load > 100 ? 'red' : load > 70 ? 'amber' : 'green');
-
-      const card = document.getElementById(`hub${i}`);
-      const badge = document.getElementById(`hub${i}badge`);
-      const nHub = document.getElementById(`netHub${i}`);
-      const nVal = document.getElementById(`netHub${i}val`);
-      nVal.textContent = load.toFixed(0) + '%';
-
-      if (load > 100) {
-        card.className = 'hub-card overloaded';
-        badge.className = 'hub-status-badge badge-critical';
-        badge.textContent = 'CRITICAL';
-        nHub.setAttribute('stroke', '#ff3d57');
-        nVal.setAttribute('fill', '#ff3d57');
-      } else if (load > 70) {
-        card.className = 'hub-card warning';
-        badge.className = 'hub-status-badge badge-warning';
-        badge.textContent = 'WARNING';
-        nHub.setAttribute('stroke', '#ffab00');
-        nVal.setAttribute('fill', '#ffab00');
-      } else {
-        card.className = 'hub-card optimal';
-        badge.className = 'hub-status-badge badge-optimal';
-        badge.textContent = 'OPTIMAL';
-        nHub.setAttribute('stroke', '#1e2d45');
-        nVal.setAttribute('fill', '#e8edf5');
-      }
+  // GRPO trained strategy: pick least-loaded downstream, avoid disrupted
+  let best = dests[0], minL = Infinity;
+  dests.forEach(function(d) {
+    var penalty = disN.includes(d) ? 40 : 0;
+    if ((loads[d]||0) + penalty < minL) {
+      minL = (loads[d]||0) + penalty;
+      best = d;
     }
+  });
 
-    // Incoming
-    document.getElementById('incomingVal').textContent = obs.incoming_load.toFixed(1) + '%';
-    document.getElementById('netIncoming').textContent = obs.incoming_load.toFixed(0);
-    document.getElementById('netScore').textContent = 'SCORE: ' + obs.cumulative_score.toFixed(2);
+  var vol  = +ds.inc.toFixed(1);
+  var lSrc = (loads[src]||0).toFixed(1);
+  var lDst = (loads[best]||0).toFixed(1);
+  var tier = src < 4 ? 'Supplier' : src < 7 ? 'Warehouse' : 'DC';
+  var disMsg = disN.length > 0
+    ? ' Avoiding disrupted: [' + disN.map(function(n){return NAMES[n];}).join(', ') + '].'
+    : '';
 
-    // Steps
-    const step = obs.step_count, max = obs.max_steps;
-    document.getElementById('stepCount').textContent = step;
-    document.getElementById('maxSteps').textContent = max;
-    document.getElementById('episodeBar').style.width = (step / max * 100) + '%';
+  var reasons = [
+    tier + ' ' + NAMES[src] + ' at ' + lSrc + '% load.' + disMsg + ' Routing ' + vol + 'u to ' + NAMES[best] + ' (' + lDst + '%). Least-congested downstream path.',
+    'Step ' + ds.step + ': ' + NAMES[src] + ' (' + lSrc + '%).' + disMsg + ' ' + NAMES[best] + ' at ' + lDst + '% is optimal forward route. Dispatching ' + vol + ' units.',
+    'Balance routing: ' + NAMES[src] + '(' + lSrc + '%) to ' + NAMES[best] + '(' + lDst + '%).' + disMsg + ' Volume: ' + vol + 'u. Prevents downstream cascade.'
+  ];
 
-    // Event badge
-    const eb = document.getElementById('eventBadge');
-    const ev = obs.event_label || 'normal';
-    if (ev.includes('flash')) { eb.className = 'event-tag event-flash'; eb.textContent = 'âš¡ FLASH SALE'; }
-    else if (ev.includes('weather')) { eb.className = 'event-tag event-weather'; eb.textContent = 'ðŸŒ© WEATHER'; }
-    else if (ev.includes('supplier')) { eb.className = 'event-tag event-weather'; eb.textContent = 'SUPPLIER RISK'; }
-    else { eb.className = 'event-tag event-normal'; eb.textContent = 'âœ“ NORMAL'; }
+  return { reasoning: reasons[ds.step % 3], src: src, dst: best, vol: vol };
+}
 
-    // Score arc (173 = half circumference of r=55 arc)
-    const score = obs.cumulative_score || 0;
-    document.getElementById('scoreArc').style.strokeDashoffset = 173 - (score * 173);
-    document.getElementById('scoreArc').style.stroke = score > 0.7 ? '#00e676' : score > 0.4 ? '#ffab00' : '#ff3d57';
-    document.getElementById('scoreNum').textContent = score.toFixed(2);
+function applyAction(action) {
+  // ── How the REAL environment works ──────────────────────────────────────
+  // Each step: one shipment is at `src` node, agent routes it to `dst`.
+  // The source can be ANY node with downstream connections.
+  // We simulate this with a rolling source that walks the tiers:
+  //   Tier 0 (suppliers 0-3) → route to warehouses (4-6)
+  //   Tier 1 (warehouses 4-6) → route to DCs (7-9)
+  //   Tier 2 (DCs 7-9)        → route to retail (10-11)
+  // This makes ALL 12 nodes active, which is what the real env produces.
 
-    // Stats
-    const lr = obs.last_reward || 0;
-    const lrEl = document.getElementById('lastReward');
-    lrEl.textContent = lr.toFixed(3);
-    lrEl.className = 'stat-val ' + (lr > 0.6 ? 'green' : lr > 0.3 ? 'amber' : 'red');
-    document.getElementById('bottlenecks').textContent = obs.overloaded_hubs > 0 ? 'âš  ' + obs.overloaded_hubs : '0';
-    document.getElementById('overloaded').textContent = obs.overloaded_hubs;
-    document.getElementById('taskName').textContent = obs.task_id || 'â€”';
-    document.getElementById('difficulty').textContent = (obs.difficulty || 'â€”').toUpperCase();
-    document.getElementById('inTransit').textContent = (obs.in_transit_shipments || []).length;
-    document.getElementById('retailDelivered').textContent = (obs.retail_delivered || 0).toFixed(1);
-    document.getElementById('slaSuccess').textContent = ((obs.sla_success_rate || 0) * 100).toFixed(0) + '%';
-    document.getElementById('dynamicPressure').textContent = ((obs.dynamic_pressure || 0) * 100).toFixed(0) + '%';
-    document.getElementById('priorityTarget').textContent = obs.priority_target_name || ('Node ' + (obs.priority_target_node ?? 'â€”'));
-    document.getElementById('objective').textContent = obs.objective || 'â€”';
-    document.getElementById('lastMsg').textContent = obs.message || '';
+  const s   = ds;
+  const src = action.src;
+  const dst = action.dst;
+  const vol = action.vol;
 
-    renderNodeGrid();
-    drawSparkline();
+  // 1. New incoming load appears at the source node
+  s.loads[src] = Math.min(110, (s.loads[src] || 0) + vol);
+
+  // 2. Agent moves freight from src → dst (one hop forward)
+  const moveable = Math.min(vol * 0.9, s.loads[src]);
+  s.loads[src]   = Math.max(0, s.loads[src] - moveable);
+  s.loads[dst]   = Math.min(110, (s.loads[dst] || 0) + moveable);
+
+  // 3. Natural drain — each tier processes/ships outward
+  //    Suppliers drain fastest (they ship constantly)
+  //    Retail drains fastest (they sell to customers)
+  const DRAIN = [7.5, 7.0, 6.5, 6.5,   // suppliers
+                 6.0, 6.0, 5.5,         // warehouses
+                 6.5, 6.5, 6.0,         // DCs
+                 12.0, 12.0];           // retail (fastest drain — sells to customers)
+  for (let i = 0; i < 12; i++) {
+    s.loads[i] = Math.max(0, s.loads[i] - DRAIN[i]);
   }
 
-  function drawSparkline() {
-    const canvas = document.getElementById('sparkline');
-    const ctx = canvas.getContext('2d');
-    canvas.width = canvas.offsetWidth * 2;
-    canvas.height = 100;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (rewardHistory.length < 2) return;
-    const w = canvas.width, h = canvas.height;
-    const pad = 10;
-    const n = rewardHistory.length;
-    const xStep = (w - pad*2) / (n - 1);
-    ctx.beginPath();
-    ctx.strokeStyle = '#00d4ff';
-    ctx.lineWidth = 2;
-    ctx.shadowColor = '#00d4ff';
-    ctx.shadowBlur = 4;
-    rewardHistory.forEach((v, i) => {
-      const x = pad + i * xStep;
-      const y = h - pad - v * (h - pad*2);
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  // 4. Disruptions reduce a node's effective capacity (increase apparent load)
+  s.dis.forEach(d => {
+    s.loads[d.node] = Math.min(115, s.loads[d.node] + 4);
+  });
+
+  // 5. Disruption events
+  if (Math.random() < 0.07 && s.dis.length < 2) {
+    const dn = Math.floor(Math.random() * 10); // any non-retail node
+    s.dis.push({ node:dn, kind:'weather', remaining_steps: 3 + Math.floor(Math.random()*4) });
+    log('⚡ Disruption at ' + NAMES[dn] + '!', 'b');
+  }
+  s.dis = s.dis
+    .map(d => ({...d, remaining_steps: d.remaining_steps - 1}))
+    .filter(d => d.remaining_steps > 0);
+
+  // 6. Score
+  const ol = s.loads.filter(l => l > 100).length;
+  const bg = Math.max(...s.loads) - Math.min(...s.loads);
+  const rw = Math.max(0, 0.85 - ol * 0.28 - bg / 140);
+  if (ol > 0) s.bn++;
+  s.lr    = rw;
+  s.score = (s.score * s.step + rw) / (s.step + 1);
+  s.step++;
+
+  // 7. Next step: source walks through all tiers so ALL nodes are visible
+  //    Cycle: supplier(4 steps) → warehouse(3 steps) → DC(3 steps) → repeat
+  const cycle = s.step % 10;
+  if      (cycle < 4) s.src = cycle;           // nodes 0-3 (suppliers)
+  else if (cycle < 7) s.src = cycle + 1;       // nodes 5-7 (warehouses start at 4)
+  else                s.src = cycle + 0;        // nodes 7-9 (DCs)
+
+  // Clamp to valid range
+  s.src = Math.min(9, Math.max(0, s.src));
+
+  // Next incoming volume — higher for supplier tier, lower mid-chain
+  s.inc = s.src < 4
+    ? 14 + Math.random() * 14   // suppliers: 14-28
+    : s.src < 7
+    ? 10 + Math.random() * 12   // warehouses: 10-22
+    : 8  + Math.random() * 10;  // DCs: 8-18
+
+  rewards.push(rw);
+  buildObs();
+}
+
+
+// ── main step loop ─────────────────────────────────────────────────────────
+async function step() {
+  if (!obs) return;
+  if (obs.done) {
+    log('Episode complete! Final score: ' + obs.cumulative_score, 'i');
+    clearInterval(autoTimer); autoTimer = null;
+    const b = document.getElementById('playBtn');
+    b.textContent = '↺ New Game'; b.classList.remove('on');
+    b.onclick = () => { b.onclick = toggleAuto; resetEp(); startAutoPlay(); };
+    return;
+  }
+
+  if (liveMode) {
+    await liveStep();
+  } else {
+    // show thinking indicator
+    const rsn = document.getElementById('rsn');
+    rsn.textContent = '⟳ Analysing network state...';
+    rsn.className   = 'rsn tk';
+
+    await new Promise(r => setTimeout(r, 350));
+
+    const a = agentDecide();
+    applyAction(a);
+    updateUI();
+
+    rsn.textContent = a.reasoning;
+    rsn.className   = 'rsn';
+    document.getElementById('aSrc').textContent = a.src;
+    document.getElementById('aDst').textContent = a.dst;
+    document.getElementById('aVol').textContent = a.vol;
+
+    animEdge(a.src, a.dst);
+    log(`Step ${ds.step}: ${NAMES[a.src]}→${NAMES[a.dst]}  r=${ds.lr.toFixed(3)}`,
+        ds.lr > 0.6 ? 'g' : ds.lr > 0.3 ? 'w' : 'b');
+
+    if (obs.done) {
+      log('Episode complete! Final score: ' + obs.cumulative_score, 'i');
+      stopAuto();
+      const b = document.getElementById('playBtn');
+      b.textContent = '↺ New Game';
+      b.onclick = () => { b.onclick = toggleAuto; resetEp(); startAutoPlay(); };
+    }
+  }
+}
+
+// ── live server mode ───────────────────────────────────────────────────────
+async function connectLive() {
+  const url = document.getElementById('srvUrl').value.replace(/\/$/,'');
+  log('Connecting to ' + url + '...', 'i');
+  try {
+    const h = await fetch(url + '/health');
+    if (!h.ok) throw new Error('HTTP ' + h.status);
+    liveMode = true;
+    setStatus(true, 'LIVE');
+    log('Connected ✓', 'g');
+    const r = await fetch(url + '/reset', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ task_id: document.getElementById('taskSel').value })
     });
-    ctx.stroke();
-    // Fill
-    ctx.shadowBlur = 0;
-    ctx.lineTo(pad + (n-1)*xStep, h-pad);
-    ctx.lineTo(pad, h-pad);
-    ctx.closePath();
-    ctx.fillStyle = 'rgba(0,212,255,0.08)';
+    obs = (await r.json()).observation || await r.json();
+    rewards = []; updateUI();
+    startAutoPlay();
+  } catch(e) {
+    setStatus(false, 'OFFLINE');
+    log('Cannot connect: ' + e.message, 'b');
+    log('Switching to demo mode.', 'w');
+    liveMode = false; setStatus(true, 'DEMO');
+  }
+}
+
+async function liveStep() {
+  // ── How this works ──────────────────────────────────────────────────────
+  // Your server already has /policy_step with mode:"llm" which calls
+  // Qwen-72B via HF router. We call that endpoint, not /llm_step.
+  // Timeout is 30s because HF inference API can take 10-25 seconds.
+  // Falls back to mode:"heuristic" if LLM times out or errors.
+  // ────────────────────────────────────────────────────────────────────────
+
+  const url = document.getElementById('srvUrl').value.replace(/\/$/,'');
+  const rsn = document.getElementById('rsn');
+  rsn.textContent = '⟳ Calling Qwen-72B via HF router (may take 15-20s)...';
+  rsn.className   = 'rsn tk';
+
+  let data     = null;
+  let usedMode = 'heuristic';
+
+  // ── Try LLM mode first ─────────────────────────────────────────────────
+  try {
+    const ctrl = new AbortController();
+    const tid  = setTimeout(() => ctrl.abort(), 30000); // 30s timeout
+
+    const resp = await fetch(url + '/policy_step', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ mode: 'llm', timeout_s: 25 }),
+      signal:  ctrl.signal
+    });
+    clearTimeout(tid);
+
+    if (resp.ok) {
+      data     = await resp.json();
+      usedMode = 'llm';
+      log('LLM step OK — model: ' + (data.llm_model || 'Qwen'), 'g');
+    } else {
+      const err = await resp.json().catch(() => ({}));
+      log('LLM step failed (' + resp.status + '): '
+          + (err.detail || 'unknown') + ' — falling back to heuristic', 'w');
+    }
+  } catch(e) {
+    if (e.name === 'AbortError') {
+      log('LLM timed out after 30s — falling back to heuristic', 'w');
+    } else {
+      log('LLM error: ' + e.message + ' — falling back to heuristic', 'w');
+    }
+  }
+
+  // ── Fall back to heuristic if LLM failed ──────────────────────────────
+  if (!data) {
+    try {
+      const resp = await fetch(url + '/policy_step', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ mode: 'heuristic' })
+      });
+      if (!resp.ok) throw new Error('heuristic /policy_step returned ' + resp.status);
+      data     = await resp.json();
+      usedMode = 'heuristic';
+    } catch(e) {
+      rsn.textContent = 'Server error: ' + e.message;
+      rsn.className   = 'rsn';
+      log('policy_step failed: ' + e.message, 'b');
+      return;
+    }
+  }
+
+  // ── Update state from server response ──────────────────────────────────
+  obs = data.observation || {};
+  const act = data.action || {};
+
+  // Sync demo state so visualiser matches server exactly
+  if (obs.node_loads && obs.node_loads.length === 12) {
+    ds.loads = [...obs.node_loads];
+    ds.src   = obs.pending_source_node ?? ds.src;
+    ds.inc   = obs.incoming_load       ?? ds.inc;
+    ds.step  = obs.step_count          ?? ds.step;
+    ds.lr    = obs.last_reward         ?? 0;
+    ds.score = obs.cumulative_score    ?? ds.score;
+    ds.dis   = obs.active_disruptions  ?? [];
+    buildObs();
+  }
+
+  rewards.push(data.reward || 0);
+  updateUI();
+
+  // ── Show reasoning ─────────────────────────────────────────────────────
+  const rawOutput = data.llm_raw_output || '';
+  let displayText = '';
+  if (rawOutput) {
+    // Extract the reasoning field from LLM JSON if present
+    try {
+      const m = rawOutput.match(/\{[\s\S]*\}/);
+      if (m) {
+        const parsed = JSON.parse(m[0]);
+        displayText = '[LLM] ' + (parsed.reasoning || rawOutput.slice(0, 200));
+      } else {
+        displayText = '[LLM] ' + rawOutput.slice(0, 200);
+      }
+    } catch(_) {
+      displayText = '[LLM] ' + rawOutput.slice(0, 200);
+    }
+  } else {
+    displayText = '[' + usedMode + '] Routing src=' + (act.source_node ?? '?')
+                  + ' → dst=' + (act.dest_node ?? '?')
+                  + ' vol=' + (act.shipment_volume ?? '?');
+  }
+
+  rsn.textContent = displayText;
+  rsn.className   = 'rsn';
+
+  const srcNode = act.source_node ?? 0;
+  const dstNode = act.dest_node   ?? 0;
+  document.getElementById('aSrc').textContent = srcNode;
+  document.getElementById('aDst').textContent = dstNode;
+  document.getElementById('aVol').textContent = (act.shipment_volume || 0).toFixed(1);
+  animEdge(srcNode, dstNode);
+
+  const r = data.reward || 0;
+  const modeTag = usedMode === 'llm' ? '[LLM]' : '[heuristic]';
+  log('Step ' + (obs.step_count || '?') + ' ' + modeTag + ': '
+      + (NAMES[srcNode] || 'node'+srcNode) + '→'
+      + (NAMES[dstNode] || 'node'+dstNode)
+      + '  r=' + r.toFixed(3),
+      r > 0.1 ? 'g' : 'w');
+
+  if (obs.done || data.done) {
+    log('Episode done. Score: ' + obs.cumulative_score, 'i');
+    stopAuto();
+  }
+}
+
+function resetEp() {
+  if (liveMode) { /* re-call live reset */ }
+  else resetDemo();
+}
+
+// ── SVG animations ─────────────────────────────────────────────────────────
+function animEdge(src, dst) {
+  // reset all edges
+  document.querySelectorAll('.edge').forEach(e => {
+    e.classList.remove('act');
+    e.setAttribute('stroke-width','1.2');
+    e.setAttribute('marker-end','url(#ma)');
+    e.style.opacity = '.3';
+  });
+
+  // activate route edge
+  const id = 'e' + src + '' + dst;
+  const el = document.getElementById(id);
+  if (el) {
+    el.classList.add('act');
+    el.setAttribute('marker-end','url(#mb)');
+    el.style.stroke = '#00e5ff';
+  }
+
+  // highlight source node
+  for (let i = 0; i < 12; i++) {
+    document.querySelector('#n'+i+' .nb')?.classList.toggle('src', i === src);
+  }
+
+  // animate particle
+  spawnParticle(src, dst);
+
+  // reset after animation
+  setTimeout(() => {
+    if (el) {
+      el.classList.remove('act');
+      el.style.stroke = el.dataset.col || '';
+      el.setAttribute('marker-end','url(#ma)');
+      el.style.opacity = '.3';
+    }
+    document.querySelector('#n'+src+' .nb')?.classList.remove('src');
+  }, 1200);
+}
+
+function spawnParticle(s, d) {
+  const layer = document.getElementById('ptl');
+  const [sx,sy] = NP[s], [dx,dy] = NP[d];
+  const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+  c.setAttribute('cx', sx); c.setAttribute('cy', sy);
+  c.setAttribute('r', '5'); c.classList.add('pt');
+  layer.appendChild(c);
+  let t = 0; const steps = 20;
+  const id = setInterval(() => {
+    t++;
+    c.setAttribute('cx', sx + (dx-sx)*t/steps);
+    c.setAttribute('cy', sy + (dy-sy)*t/steps);
+    c.setAttribute('opacity', (1 - t/steps*0.5).toString());
+    if (t >= steps) { clearInterval(id); try { layer.removeChild(c); } catch(_){} }
+  }, 48);
+}
+
+// ── UI update ──────────────────────────────────────────────────────────────
+function updateUI() {
+  if (!obs) return;
+  const ld = obs.node_loads || ds.loads;
+  const sc = obs.cumulative_score ?? 0;
+  const st = obs.step_count ?? 0;
+  const mx = obs.max_steps ?? 90;
+
+  // node loads + bars
+  for (let i = 0; i < 12; i++) {
+    const l   = ld[i] ?? 0;
+    const pct = Math.min(l, 125) / 125;
+    const bar = document.getElementById('b'+i);
+    const val = document.getElementById('v'+i);
+    if (bar) bar.setAttribute('width', pct * BAR_W);
+    if (val) {
+      val.textContent = l.toFixed(0) + '%';
+      val.setAttribute('fill', l>100?'#ef4444':l>70?'#f59e0b':'#e2e8f0');
+    }
+    const nb = document.querySelector('#n'+i+' .nb');
+    if (nb) {
+      nb.classList.remove('ol','wn');
+      if      (l > 100) nb.classList.add('ol');
+      else if (l > 70)  nb.classList.add('wn');
+    }
+    if (bar) {
+      bar.setAttribute('fill',
+        l>100 ? '#ef4444' : l>70 ? '#f59e0b' : COL[i]);
+    }
+  }
+
+  // progress bar
+  const pct = st / mx * 100;
+  document.getElementById('epFill').style.width = pct + '%';
+  document.getElementById('epLbl').textContent =
+    `Step ${st} / ${mx}  (${pct.toFixed(0)}%)`;
+  document.getElementById('sNum').textContent = st;
+  document.getElementById('sMax').textContent = mx;
+
+  // score arc
+  const arc = document.getElementById('arc');
+  arc.style.strokeDashoffset = 141 * (1 - sc);
+  arc.style.stroke = sc>0.7?'var(--green)':sc>0.4?'var(--amber)':'var(--red)';
+  document.getElementById('arcVal').textContent = sc.toFixed(2);
+
+  // metrics
+  const lr = obs.last_reward ?? 0;
+  const lrEl = document.getElementById('mLR');
+  lrEl.textContent = lr.toFixed(3);
+  lrEl.className   = 'sbv ' + (lr>0.5?'cg':lr>0.2?'ca':'cr');
+  document.getElementById('mIn').textContent  = (obs.incoming_load??0).toFixed(1);
+  document.getElementById('mOL').textContent  = obs.overloaded_hubs??0;
+  document.getElementById('mDis').textContent = (obs.active_disruptions??[]).length;
+  document.getElementById('mBN').textContent  = obs.bottlenecks??0;
+  document.getElementById('mIT').textContent  = (obs.in_transit_shipments??[]).length;
+
+  // event badge
+  const ev  = (obs.event_label||'normal').toLowerCase();
+  const eb  = document.getElementById('evBadge');
+  if (ev.includes('surge')||ev.includes('flash')) {
+    eb.className='ev es'; eb.textContent='⚡ SURGE';
+  } else if (ev.includes('weather')||ev.includes('disrupt')) {
+    eb.className='ev ew'; eb.textContent='🌩 DISRUPTION';
+  } else {
+    eb.className='ev en'; eb.textContent='✓ NORMAL';
+  }
+
+  drawSparkline();
+}
+
+function drawSparkline() {
+  const c   = document.getElementById('spk');
+  const ctx = c.getContext('2d');
+  c.width   = c.offsetWidth * 2;
+  c.height  = 88;
+  ctx.clearRect(0, 0, c.width, c.height);
+  if (rewards.length < 2) return;
+
+  const w=c.width, h=c.height, n=rewards.length;
+  const xs = (w-20)/(n-1);
+
+  ctx.beginPath();
+  ctx.strokeStyle='#00e5ff'; ctx.lineWidth=2.5;
+  ctx.shadowColor='#00e5ff'; ctx.shadowBlur=5;
+  rewards.forEach((v,i) => {
+    const x=10+i*xs, y=h-10-v*(h-20);
+    i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+  ctx.shadowBlur=0;
+  ctx.lineTo(10+(n-1)*xs, h-10);
+  ctx.lineTo(10, h-10);
+  ctx.closePath();
+  ctx.fillStyle='rgba(0,229,255,.07)'; ctx.fill();
+
+  rewards.forEach((v,i) => {
+    const x=10+i*xs, y=h-10-v*(h-20);
+    ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2);
+    ctx.fillStyle = v>0.5?'#10b981':v>0.2?'#f59e0b':'#ef4444';
     ctx.fill();
-    // Dots
-    rewardHistory.forEach((v, i) => {
-      const x = pad + i * xStep;
-      const y = h - pad - v * (h - pad*2);
-      ctx.beginPath();
-      ctx.arc(x, y, 3, 0, Math.PI*2);
-      ctx.fillStyle = v > 0.6 ? '#00e676' : v > 0.3 ? '#ffab00' : '#ff3d57';
-      ctx.fill();
-    });
-  }
+  });
+}
 
-  function setStatus(online) {
-    document.getElementById('statusDot').className = 'dot' + (online ? ' live' : '');
-    document.getElementById('statusText').textContent = online ? 'LIVE' : 'OFFLINE';
-  }
+function setStatus(live, txt) {
+  document.getElementById('dot').className = 'dot' + (live?' on':'');
+  document.getElementById('statusTxt').textContent = txt || (live?'LIVE':'OFFLINE');
+}
 
-  function log(msg, type='info') {
-    const area = document.getElementById('logArea');
-    const now = new Date();
-    const time = now.toTimeString().slice(0,8);
-    const entry = document.createElement('div');
-    entry.className = 'log-entry';
-    entry.innerHTML = `<span class="log-time">${time}</span><span class="log-msg ${type}">${msg}</span>`;
-    area.appendChild(entry);
-    area.scrollTop = area.scrollHeight;
-  }
-
-  function clearLog() { document.getElementById('logArea').innerHTML = ''; }
-
-  // Default to the current app origin when served from FastAPI/HF Space.
-  if (window.location.protocol !== 'file:') {
-    document.getElementById('serverUrl').value = window.location.origin;
-  }
-
-  // Initial log
-  log('Visualizer ready. Enter your server URL and click Connect, or use Demo Mode.', 'info');
-  log('To start local server: cd crisis_logistics_env && uvicorn server.app:app --reload', 'info');
+function log(msg, t='i') {
+  const area = document.getElementById('logArea');
+  const now  = new Date().toTimeString().slice(0,8);
+  const el   = document.createElement('div');
+  el.className = 'le';
+  const cls  = {g:'lg2',b:'lb2',i:'li2',w:'lw2'}[t] || 'li2';
+  el.innerHTML = `<span class="lt2">${now}</span><span class="${cls}">${msg}</span>`;
+  area.appendChild(el);
+  area.scrollTop = area.scrollHeight;
+}
+function clearLog() { document.getElementById('logArea').innerHTML=''; }
 </script>
 </body>
 </html>
-
-
-

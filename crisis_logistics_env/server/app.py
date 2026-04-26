@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, Dict, Literal, Optional
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel
 
 try:
@@ -86,6 +86,13 @@ class PolicyStepResponse(BaseModel):
     llm_raw_output: Optional[str] = None
 
 
+class LlmStatusResponse(BaseModel):
+    llm_ready: bool
+    has_api_key: bool
+    model_name: str
+    api_base_url: str
+
+
 def _build_policy_prompt(observation: CrisisLogisticsObservation, title: str) -> str:
     return (
         f"Task: {title}\n"
@@ -127,14 +134,19 @@ def _extract_json_payload(text: str) -> Dict[str, Any]:
 
 
 def _resolve_llm_action(observation: CrisisLogisticsObservation) -> tuple[CrisisLogisticsAction, str, str]:
-    api_key = os.getenv("HF_TOKEN") or os.getenv("OPENAI_API_KEY") or os.getenv("API_KEY")
+    api_key = (
+        os.getenv("HF_TOKEN")
+        or os.getenv("OPENAI_API_KEY")
+        or os.getenv("API_KEY")
+    )
+    api_key = api_key.strip() if isinstance(api_key, str) else api_key
     if not api_key:
         raise HTTPException(
             status_code=503,
             detail="LLM mode needs HF_TOKEN or OPENAI_API_KEY set in Space secrets.",
         )
-    base_url = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
-    model_name = os.getenv("MODEL_NAME") or "Qwen/Qwen2.5-72B-Instruct"
+    base_url = (os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1").strip()
+    model_name = (os.getenv("MODEL_NAME") or "Qwen/Qwen2.5-72B-Instruct").strip()
 
     try:
         from openai import OpenAI
@@ -147,7 +159,13 @@ def _resolve_llm_action(observation: CrisisLogisticsObservation) -> tuple[Crisis
         "Always return exactly one JSON object with keys: reasoning, source_node, dest_node, shipment_volume."
     )
 
-    client = OpenAI(api_key=api_key, base_url=base_url)
+    try:
+        client = OpenAI(api_key=api_key, base_url=base_url)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to initialize OpenAI client: {type(exc).__name__}: {exc}",
+        ) from exc
     try:
         response = client.chat.completions.create(
             model=model_name,
@@ -219,6 +237,17 @@ async def web_landing() -> HTMLResponse:
     return HTMLResponse(_read_visualizer_html())
 
 
+@app.get("/web/", response_class=HTMLResponse, tags=["Environment Info"])
+async def web_landing_slash() -> HTMLResponse:
+    return HTMLResponse(_read_visualizer_html())
+
+
+@app.get("/server", include_in_schema=False)
+async def server_compat() -> RedirectResponse:
+    """Compatibility route used by some deployment templates."""
+    return RedirectResponse(url="/web")
+
+
 @app.get("/visualizer", response_class=HTMLResponse, tags=["Environment Info"])
 async def visualizer() -> HTMLResponse:
     return HTMLResponse(_read_visualizer_html())
@@ -251,31 +280,56 @@ async def step_environment(request: StepRequest) -> StepResponse:
 async def policy_step(request: PolicyStepRequest) -> PolicyStepResponse:
     """Execute one environment step using either heuristic or strict LLM policy mode."""
     # Build current observation snapshot for policy selection.
-    observation = env._get_observation("Policy evaluation snapshot.")
+    try:
+        observation = env._get_observation("Policy evaluation snapshot.")
 
-    if request.mode == "heuristic":
-        action = choose_resilient_action(observation)
-        policy_mode = "heuristic"
-        action_source = "heuristic"
-        llm_model = None
-        llm_raw_output = None
-    elif request.mode == "llm":
-        action, llm_model, llm_raw_output = _resolve_llm_action(observation)
-        policy_mode = "llm"
-        action_source = "llm"
-    else:
-        raise HTTPException(status_code=400, detail=f"Unsupported policy mode: {request.mode}")
+        if request.mode == "heuristic":
+            action = choose_resilient_action(observation)
+            policy_mode = "heuristic"
+            action_source = "heuristic"
+            llm_model = None
+            llm_raw_output = None
+        elif request.mode == "llm":
+            action, llm_model, llm_raw_output = _resolve_llm_action(observation)
+            policy_mode = "llm"
+            action_source = "llm"
+        else:
+            raise HTTPException(status_code=400, detail=f"Unsupported policy mode: {request.mode}")
 
-    next_observation = env.step(action, timeout_s=request.timeout_s)
-    return PolicyStepResponse(
-        observation=next_observation.model_dump(),
-        reward=float(next_observation.reward or 0.0),
-        done=next_observation.done,
-        policy_mode=policy_mode,
-        action_source=action_source,
-        action=action.model_dump(exclude_none=True),
-        llm_model=llm_model,
-        llm_raw_output=llm_raw_output if request.mode == "llm" else None,
+        next_observation = env.step(action, timeout_s=request.timeout_s)
+        return PolicyStepResponse(
+            observation=next_observation.model_dump(),
+            reward=float(next_observation.reward or 0.0),
+            done=next_observation.done,
+            policy_mode=policy_mode,
+            action_source=action_source,
+            action=action.model_dump(exclude_none=True),
+            llm_model=llm_model,
+            llm_raw_output=llm_raw_output if request.mode == "llm" else None,
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"policy_step unexpected error: {type(exc).__name__}: {exc}",
+        ) from exc
+
+
+@app.get("/llm_status", response_model=LlmStatusResponse, tags=["Environment Info"])
+async def llm_status() -> LlmStatusResponse:
+    api_key = (
+        os.getenv("HF_TOKEN")
+        or os.getenv("OPENAI_API_KEY")
+        or os.getenv("API_KEY")
+    )
+    model_name = (os.getenv("MODEL_NAME") or "Qwen/Qwen2.5-72B-Instruct").strip()
+    api_base_url = (os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1").strip()
+    return LlmStatusResponse(
+        llm_ready=bool(api_key),
+        has_api_key=bool(api_key),
+        model_name=model_name,
+        api_base_url=api_base_url,
     )
 
 
@@ -308,7 +362,6 @@ async def get_schema() -> SchemaResponse:
 @app.get("/health", response_model=HealthResponse, tags=["Health"])
 async def health() -> HealthResponse:
     return HealthResponse(status=HealthStatus.HEALTHY)
-
 
 def main() -> None:
     import uvicorn
