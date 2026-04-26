@@ -400,7 +400,7 @@ crisis_logistics_env/
 
 | Resource | Link |
 |----------|------|
-| 🤗 HuggingFace Space (live environment) | https://roshan5emerald-logiflow-rl.hf.space/ | (Visualizer) | https://huggingface.co/spaces/roshan5emerald/logiflow-rl
+| 🤗 HuggingFace Space (live environment) | https://huggingface.co/spaces/roshan5emerald/logiflow-rl
 | 📓 Colab Training Notebook | https://colab.research.google.com/drive/1wGXYNNYp13emNE1ThX3aqpIM3ppcU_Ty?usp=sharing |
 | 📝 HuggingFace Blog Post | https://huggingface.co/spaces/roshan5emerald/logiflow-rl/blob/main/HF_MINI_BLOG.md |
 
