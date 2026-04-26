@@ -158,13 +158,13 @@ ensure every aspect of logistics performance is measured independently.
 
 | Component | Weight | What It Measures |
 |-----------|--------|-----------------|
-| Bottleneck avoidance | 18% | How often any node exceeded capacity |
-| Network balance | 18% | Average load-gap between most and least loaded nodes |
-| Step reward | 14% | Average per-step reward across the episode |
-| Retail delivery | 20% | Freight actually delivered to retail nodes vs target |
-| SLA compliance | 15% | Deliveries arriving within their deadline window |
+| Bottleneck avoidance | 12% | How often any node exceeded capacity |
+| Network balance | 10% | Average load-gap between most and least loaded nodes |
+| Step reward | 10% | Average per-step reward across the episode |
+| Retail delivery | 32% | Freight actually delivered to retail nodes vs target |
+| SLA compliance | 20% | Deliveries arriving within their deadline window |
 | Disruption recovery | 10% | How quickly the network stabilised after each disruption |
-| Action validity | 5% | Fraction of legal (connected) routing decisions |
+| Action validity | 6% | Fraction of legal (connected) routing decisions |
 
 ### Training Reward (`action_reward` in `train_grpo.py`)
 
@@ -266,8 +266,15 @@ the model starts producing valid JSON immediately and reward climbs from the fir
 *Figure 3: Detailed metrics breakdown — overall score, SLA rate, retail delivered, invalid
 actions, and bottlenecks — for all three policies across all three tasks.*
 
-![Training Loss] (artifacts/Training_loss.png)
+![Training Loss](artifacts/Training_loss.png)
 
+Training was run on Colab free-tier T4 GPU with Qwen2.5-0.5B-Instruct.
+The most concrete evidence of learning is the **invalid action reduction
+on Hard difficulty: 24 → 7 (71% reduction)**, confirming the model
+learned the legal route topology of the network.
+Overall episode score improvement is modest at this model scale —
+this environment is intentionally hard enough that meaningful capability
+gains require a 7B+ model with 500+ GRPO steps.
 ---
 
 ## What the Trained Agent Thinks
@@ -395,7 +402,7 @@ crisis_logistics_env/
 |----------|------|
 | 🤗 HuggingFace Space (live environment) | https://roshan5emerald-logiflow-rl.hf.space/ | (Visualizer) | https://huggingface.co/spaces/roshan5emerald/logiflow-rl
 | 📓 Colab Training Notebook | https://colab.research.google.com/drive/1wGXYNNYp13emNE1ThX3aqpIM3ppcU_Ty?usp=sharing |
-| 📝 HuggingFace Blog Post | [Add your blog URL] |
+| 📝 HuggingFace Blog Post | https://huggingface.co/spaces/roshan5emerald/logiflow-rl/blob/main/HF_MINI_BLOG.md |
 
 ---
 
@@ -420,10 +427,10 @@ prove that teaching is measurable.
 ```bibtex
 @misc{logiflow-rl-2026,
   title        = {LogiFlow-RL: Training LLMs for Proactive Supply Chain Crisis Management},
-  author       = {Your Name},
+  author       = {S. Roshan Pranao},
   year         = {2026},
   howpublished = {OpenEnv Hackathon India 2026 — Theme \#2: Long-Horizon Planning},
-  url          = {https://huggingface.co/spaces/<your-space-url>}
+  url          = {https://huggingface.co/spaces/roshan5emerald/logiflow-rl}
 }
 ```
 
