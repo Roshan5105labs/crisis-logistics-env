@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LogiFlow-RL · Live Environment Visualizer</title>
+<title>LogiFlow-RL Â· Live Environment Visualizer</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
 
@@ -94,6 +94,28 @@
   .badge-warning { background: rgba(255,171,0,0.15); color: var(--amber); }
   .badge-critical { background: rgba(255,61,87,0.15); color: var(--red); }
 
+  /* Full node panel (12-node live state) */
+  .node-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .node-chip { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px; transition: border-color 0.2s, box-shadow 0.2s, opacity 0.2s; }
+  .node-chip.visible { border-color: #335a89; }
+  .node-chip.hidden { opacity: 0.58; border-style: dashed; }
+  .node-chip.overload { border-color: var(--red); box-shadow: 0 0 10px rgba(255,61,87,0.18); }
+  .node-head { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 5px; }
+  .node-id { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+  .node-type { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .node-type.supplier { color: #7cc0ff; }
+  .node-type.warehouse { color: #9f93ff; }
+  .node-type.distribution { color: #ffab00; }
+  .node-type.retail { color: #00e676; }
+  .node-name { font-size: 10px; color: var(--text); margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .node-metrics { display: flex; justify-content: space-between; align-items: center; font-family: var(--mono); font-size: 10px; color: var(--muted); margin-bottom: 5px; }
+  .node-meter { height: 4px; background: var(--border); border-radius: 999px; overflow: hidden; }
+  .node-meter-fill { height: 100%; transition: width 0.3s ease; }
+  .node-meter-fill.ok { background: var(--green); }
+  .node-meter-fill.warn { background: var(--amber); }
+  .node-meter-fill.bad { background: var(--red); }
+  .node-flags { margin-top: 5px; font-family: var(--mono); font-size: 9px; color: var(--amber); min-height: 10px; }
+
   /* Network SVG */
   .network-wrap { position: relative; }
   .network-svg { width: 100%; height: 220px; }
@@ -181,7 +203,7 @@
       <div class="logo-icon">LF</div>
       <div class="logo-text">
         <h1>LOGIFLOW-RL</h1>
-        <p>Live Environment Visualizer · 12-node crisis network</p>
+        <p>Live Environment Visualizer Â· 12-node crisis network</p>
       </div>
     </div>
     <div class="status-pill">
@@ -194,17 +216,17 @@
   <div class="controls">
     <input class="server-input" id="serverUrl" type="text" value="http://localhost:8000" placeholder="http://localhost:8000 or HuggingFace Space URL" />
     <select id="taskSelect">
-      <option value="easy">Easy — Steady-State</option>
-      <option value="medium">Medium — Flash Sale</option>
-      <option value="hard">Hard — Cascading Disruption</option>
+      <option value="easy">Easy â€” Steady-State</option>
+      <option value="medium">Medium â€” Flash Sale</option>
+      <option value="hard">Hard â€” Cascading Disruption</option>
     </select>
-    <button class="btn-primary" onclick="connectAndReset()" style="padding:9px 18px; background:var(--accent); color:var(--bg); border:none; border-radius:8px; font-family:var(--sans); font-size:12px; font-weight:600; cursor:pointer;">⟳ Connect &amp; Reset</button>
-    <button class="btn-auto" id="autoBtn" onclick="toggleAuto()" style="padding:9px 18px; background:var(--surface2); border:1px solid var(--border); color:var(--amber); border-radius:8px; font-family:var(--sans); font-size:12px; font-weight:600; cursor:pointer;">▶ Auto Play</button>
+    <button class="btn-primary" onclick="connectAndReset()" style="padding:9px 18px; background:var(--accent); color:var(--bg); border:none; border-radius:8px; font-family:var(--sans); font-size:12px; font-weight:600; cursor:pointer;">âŸ³ Connect &amp; Reset</button>
+    <button class="btn-auto" id="autoBtn" onclick="toggleAuto()" style="padding:9px 18px; background:var(--surface2); border:1px solid var(--border); color:var(--amber); border-radius:8px; font-family:var(--sans); font-size:12px; font-weight:600; cursor:pointer;">â–¶ Auto Play</button>
     <button class="btn-secondary" onclick="useDemoMode()" style="padding:9px 18px; background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:8px; font-family:var(--sans); font-size:12px; font-weight:600; cursor:pointer;">Demo Mode</button>
   </div>
 
   <div class="demo-banner" id="demoBanner" style="display:none;">
-    ⚠ DEMO MODE — Simulating environment locally. To use live data, start your FastAPI server and click Connect.
+    âš  DEMO MODE â€” Simulating environment locally. To use live data, start your FastAPI server and click Connect.
   </div>
 
   <div class="main-grid">
@@ -215,10 +237,10 @@
       <!-- Hubs -->
       <div class="card" style="margin-bottom:16px;">
         <div class="card-header">
-          <span class="card-title">Hub Network · Live Load</span>
+          <span class="card-title">Tier Summary (3 Aggregates)</span>
           <div style="display:flex;align-items:center;gap:10px;">
             <span id="eventBadge" class="event-tag event-normal">NORMAL</span>
-            <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">Step <span id="stepCount">—</span> / <span id="maxSteps">—</span></span>
+            <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">Step <span id="stepCount">â€”</span> / <span id="maxSteps">â€”</span></span>
           </div>
         </div>
         <div class="card-body">
@@ -230,24 +252,24 @@
           <!-- Hub cards -->
           <div class="hub-grid" id="hubGrid">
             <div class="hub-card" id="hub0">
-              <div class="hub-name">Hub 0 · Alpha</div>
-              <div class="hub-load-val" id="hub0val">—<span>%</span></div>
+              <div class="hub-name">Tier 0 Â· Suppliers</div>
+              <div class="hub-load-val" id="hub0val">â€”<span>%</span></div>
               <div class="bar-track"><div class="bar-fill green" id="hub0bar" style="width:0%"></div></div>
-              <div class="hub-drain" id="hub0drain">Drain: —%/step</div>
+              <div class="hub-drain" id="hub0drain">Drain: â€”%/step</div>
               <div class="hub-status-badge badge-optimal" id="hub0badge">OPTIMAL</div>
             </div>
             <div class="hub-card" id="hub1">
-              <div class="hub-name">Hub 1 · Beta</div>
-              <div class="hub-load-val" id="hub1val">—<span>%</span></div>
+              <div class="hub-name">Tier 1 Â· Warehouses</div>
+              <div class="hub-load-val" id="hub1val">â€”<span>%</span></div>
               <div class="bar-track"><div class="bar-fill green" id="hub1bar" style="width:0%"></div></div>
-              <div class="hub-drain" id="hub1drain">Drain: —%/step</div>
+              <div class="hub-drain" id="hub1drain">Drain: â€”%/step</div>
               <div class="hub-status-badge badge-optimal" id="hub1badge">OPTIMAL</div>
             </div>
             <div class="hub-card" id="hub2">
-              <div class="hub-name">Hub 2 · Gamma</div>
-              <div class="hub-load-val" id="hub2val">—<span>%</span></div>
+              <div class="hub-name">Tier 2 Â· Downstream</div>
+              <div class="hub-load-val" id="hub2val">â€”<span>%</span></div>
               <div class="bar-track"><div class="bar-fill green" id="hub2bar" style="width:0%"></div></div>
-              <div class="hub-drain" id="hub2drain">Drain: —%/step</div>
+              <div class="hub-drain" id="hub2drain">Drain: â€”%/step</div>
               <div class="hub-status-badge badge-optimal" id="hub2badge">OPTIMAL</div>
             </div>
           </div>
@@ -266,23 +288,23 @@
               <!-- Shipment source -->
               <rect x="20" y="70" width="80" height="40" rx="8" fill="#1a2236" stroke="#1e2d45" stroke-width="1.5"/>
               <text x="60" y="87" text-anchor="middle" fill="#5a7090" font-family="Space Mono" font-size="9" font-weight="700">INCOMING</text>
-              <text x="60" y="101" text-anchor="middle" fill="#ff6b35" font-family="Space Mono" font-size="13" font-weight="700" id="netIncoming">—</text>
+              <text x="60" y="101" text-anchor="middle" fill="#ff6b35" font-family="Space Mono" font-size="13" font-weight="700" id="netIncoming">â€”</text>
               <!-- Arrows to hubs -->
               <line x1="100" y1="90" x2="190" y2="55" stroke="#1e2d45" stroke-width="1.5" marker-end="url(#arr)" id="line0"/>
               <line x1="100" y1="90" x2="190" y2="90" stroke="#1e2d45" stroke-width="1.5" marker-end="url(#arr)" id="line1"/>
               <line x1="100" y1="90" x2="190" y2="125" stroke="#1e2d45" stroke-width="1.5" marker-end="url(#arr)" id="line2"/>
               <!-- Hub 0 node -->
               <rect x="195" y="30" width="100" height="50" rx="8" fill="#111827" stroke="#1e2d45" stroke-width="1.5" id="netHub0"/>
-              <text x="245" y="51" text-anchor="middle" fill="#5a7090" font-family="Space Mono" font-size="9" font-weight="700">HUB 0 · ALPHA</text>
-              <text x="245" y="69" text-anchor="middle" fill="#e8edf5" font-family="Space Mono" font-size="15" font-weight="700" id="netHub0val">—%</text>
+              <text x="245" y="51" text-anchor="middle" fill="#5a7090" font-family="Space Mono" font-size="9" font-weight="700">HUB 0 Â· ALPHA</text>
+              <text x="245" y="69" text-anchor="middle" fill="#e8edf5" font-family="Space Mono" font-size="15" font-weight="700" id="netHub0val">â€”%</text>
               <!-- Hub 1 node -->
               <rect x="195" y="65" width="100" height="50" rx="8" fill="#111827" stroke="#1e2d45" stroke-width="1.5" id="netHub1"/>
-              <text x="245" y="86" text-anchor="middle" fill="#5a7090" font-family="Space Mono" font-size="9" font-weight="700">HUB 1 · BETA</text>
-              <text x="245" y="104" text-anchor="middle" fill="#e8edf5" font-family="Space Mono" font-size="15" font-weight="700" id="netHub1val">—%</text>
+              <text x="245" y="86" text-anchor="middle" fill="#5a7090" font-family="Space Mono" font-size="9" font-weight="700">HUB 1 Â· BETA</text>
+              <text x="245" y="104" text-anchor="middle" fill="#e8edf5" font-family="Space Mono" font-size="15" font-weight="700" id="netHub1val">â€”%</text>
               <!-- Hub 2 node -->
               <rect x="195" y="100" width="100" height="50" rx="8" fill="#111827" stroke="#1e2d45" stroke-width="1.5" id="netHub2"/>
-              <text x="245" y="121" text-anchor="middle" fill="#5a7090" font-family="Space Mono" font-size="9" font-weight="700">HUB 2 · GAMMA</text>
-              <text x="245" y="139" text-anchor="middle" fill="#e8edf5" font-family="Space Mono" font-size="15" font-weight="700" id="netHub2val">—%</text>
+              <text x="245" y="121" text-anchor="middle" fill="#5a7090" font-family="Space Mono" font-size="9" font-weight="700">HUB 2 Â· GAMMA</text>
+              <text x="245" y="139" text-anchor="middle" fill="#e8edf5" font-family="Space Mono" font-size="15" font-weight="700" id="netHub2val">â€”%</text>
               <!-- Arrow to delivery -->
               <line x1="295" y1="55" x2="400" y2="90" stroke="#1e2d45" stroke-width="1.5" marker-end="url(#arr)" id="outLine0"/>
               <line x1="295" y1="90" x2="400" y2="90" stroke="#1e2d45" stroke-width="1.5" marker-end="url(#arr)" id="outLine1"/>
@@ -290,9 +312,9 @@
               <!-- Delivery node -->
               <rect x="405" y="65" width="90" height="50" rx="8" fill="#1a2236" stroke="#1e2d45" stroke-width="1.5"/>
               <text x="450" y="87" text-anchor="middle" fill="#5a7090" font-family="Space Mono" font-size="9" font-weight="700">DELIVERY</text>
-              <text x="450" y="103" text-anchor="middle" fill="#00e676" font-family="Space Mono" font-size="11" font-weight="700" id="netScore">SCORE: —</text>
+              <text x="450" y="103" text-anchor="middle" fill="#00e676" font-family="Space Mono" font-size="11" font-weight="700" id="netScore">SCORE: â€”</text>
               <!-- Optimal zone annotation -->
-              <text x="245" y="162" text-anchor="middle" fill="#1e2d45" font-family="Space Mono" font-size="9">OPTIMAL ZONE: 30–70%</text>
+              <text x="245" y="162" text-anchor="middle" fill="#1e2d45" font-family="Space Mono" font-size="9">OPTIMAL ZONE: 30â€“70%</text>
               <line x1="200" y1="170" x2="290" y2="170" stroke="#1e2d45" stroke-width="1" stroke-dasharray="3 2"/>
             </svg>
           </div>
@@ -305,23 +327,25 @@
         <div class="card-header">
           <span class="card-title">Agent Action</span>
           <div class="incoming-panel" style="margin:0;padding:6px 12px;">
-            <span style="font-size:16px;">📦</span>
+            <span style="font-size:16px;">ðŸ“¦</span>
             <div>
-              <div class="incoming-val" id="incomingVal" style="font-size:15px;">—</div>
+              <div class="incoming-val" id="incomingVal" style="font-size:15px;">â€”</div>
               <div class="incoming-sub">Incoming load %</div>
             </div>
           </div>
         </div>
         <div class="card-body">
-          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-family:var(--mono);">Select route option for the current source node:</div>
-          <div class="action-btns" id="actionBtns">
-            <button class="action-btn" id="act0" onclick="selectAction(0)">Route 0<br><span style="font-size:9px;color:var(--muted)" id="act0load">—%</span></button>
-            <button class="action-btn" id="act1" onclick="selectAction(1)">Route 1<br><span style="font-size:9px;color:var(--muted)" id="act1load">—%</span></button>
-            <button class="action-btn" id="act2" onclick="selectAction(2)">Route 2<br><span style="font-size:9px;color:var(--muted)" id="act2load">—%</span></button>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-family:var(--mono);">Policy mode:</div>
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <select id="policyMode" style="flex:1;">
+              <option value="heuristic">Heuristic</option>
+              <option value="llm">LLM</option>
+            </select>
           </div>
           <div style="margin-top:10px;">
-            <button class="submit-btn" id="submitBtn" onclick="sendAction()" disabled>→ ROUTE SHIPMENT</button>
+            <button class="submit-btn" id="submitBtn" onclick="sendAction()" disabled>â†’ RUN POLICY STEP</button>
           </div>
+          <div style="margin-top:8px; font-family:var(--mono); font-size:10px; color:var(--muted);" id="policyAudit">Source: â€”</div>
           <div style="margin-top:8px; font-family:var(--mono); font-size:10px; color:var(--muted); min-height:16px;" id="lastMsg"></div>
         </div>
       </div>
@@ -341,7 +365,7 @@
                 <path d="M10 65 A55 55 0 0 1 110 65" fill="none" stroke="#00d4ff" stroke-width="8" stroke-linecap="round"
                   stroke-dasharray="173" stroke-dashoffset="173" id="scoreArc" style="transition:stroke-dashoffset 0.5s;"/>
               </svg>
-              <div class="score-number" id="scoreNum">—</div>
+              <div class="score-number" id="scoreNum">â€”</div>
             </div>
             <div class="score-label">CUMULATIVE SCORE</div>
           </div>
@@ -349,45 +373,56 @@
           <div style="margin-top:10px;">
             <div class="stat-row">
               <span class="stat-label">Last Reward</span>
-              <span class="stat-val" id="lastReward">—</span>
+              <span class="stat-val" id="lastReward">â€”</span>
             </div>
             <div class="stat-row">
               <span class="stat-label">Bottlenecks</span>
-              <span class="stat-val red" id="bottlenecks">—</span>
+              <span class="stat-val red" id="bottlenecks">â€”</span>
             </div>
             <div class="stat-row">
-              <span class="stat-label">Overloaded Hubs</span>
-              <span class="stat-val" id="overloaded">—</span>
+              <span class="stat-label">Overloaded Nodes</span>
+              <span class="stat-val" id="overloaded">â€”</span>
             </div>
             <div class="stat-row">
               <span class="stat-label">Task</span>
-              <span class="stat-val blue" id="taskName">—</span>
+              <span class="stat-val blue" id="taskName">â€”</span>
             </div>
             <div class="stat-row">
               <span class="stat-label">Difficulty</span>
-              <span class="stat-val" id="difficulty">—</span>
+              <span class="stat-val" id="difficulty">â€”</span>
             </div>
             <div class="stat-row">
               <span class="stat-label">In Transit</span>
-              <span class="stat-val amber" id="inTransit">—</span>
+              <span class="stat-val amber" id="inTransit">â€”</span>
             </div>
             <div class="stat-row">
               <span class="stat-label">Retail Delivered</span>
-              <span class="stat-val green" id="retailDelivered">—</span>
+              <span class="stat-val green" id="retailDelivered">â€”</span>
             </div>
             <div class="stat-row">
               <span class="stat-label">SLA Success</span>
-              <span class="stat-val blue" id="slaSuccess">—</span>
+              <span class="stat-val blue" id="slaSuccess">â€”</span>
             </div>
             <div class="stat-row">
               <span class="stat-label">Dynamic Pressure</span>
-              <span class="stat-val amber" id="dynamicPressure">—</span>
+              <span class="stat-val amber" id="dynamicPressure">â€”</span>
             </div>
             <div class="stat-row">
               <span class="stat-label">Priority Target</span>
-              <span class="stat-val" id="priorityTarget">—</span>
+              <span class="stat-val" id="priorityTarget">â€”</span>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Full node state -->
+      <div class="card" style="margin-bottom:14px;">
+        <div class="card-header">
+          <span class="card-title">12-Node Live State</span>
+          <span id="nodeGridMeta" style="font-family:var(--mono);font-size:10px;color:var(--muted);">-</span>
+        </div>
+        <div class="card-body" style="padding:12px;">
+          <div class="node-grid" id="nodeGrid"></div>
         </div>
       </div>
 
@@ -423,9 +458,8 @@
 </div>
 
 <script>
-  // ── State ──
+  // â”€â”€ State â”€â”€
   let obs = null;
-  let selectedAction = null;
   let rewardHistory = [];
   let autoInterval = null;
   let demoMode = false;
@@ -439,7 +473,7 @@
   };
   let demoState = null;
 
-  // ── API ──
+  // â”€â”€ API â”€â”€
   function serverUrl() { return document.getElementById('serverUrl').value.replace(/\/$/, ''); }
   function taskId() { return document.getElementById('taskSelect').value; }
 
@@ -451,7 +485,7 @@
     return r.json();
   }
 
-  // ── Connect & Reset ──
+  // â”€â”€ Connect & Reset â”€â”€
   async function connectAndReset() {
     demoMode = false;
     document.getElementById('demoBanner').style.display = 'none';
@@ -459,7 +493,7 @@
     try {
       await apiCall('/health');
       setStatus(true);
-      log('Connected ✓', 'good');
+      log('Connected âœ“', 'good');
       await resetEnv();
     } catch(e) {
       setStatus(false);
@@ -474,42 +508,51 @@
       obs = res.observation;
       rewardHistory = [];
       demoStep = 0;
-      selectedAction = null;
-      updateUI();
-      log(`Episode reset → task: ${obs.task_id}`, 'info');
+            updateUI();
+      log(`Episode reset â†’ task: ${obs.task_id}`, 'info');
       document.getElementById('submitBtn').disabled = false;
+      document.getElementById('policyAudit').textContent = 'Source: -';
     } catch(e) { log('Reset failed: ' + e.message, 'bad'); }
   }
 
   async function sendAction() {
-    if (selectedAction === null) return;
+    const mode = (document.getElementById('policyMode')?.value || 'heuristic');
     try {
-      const res = await apiCall('/step', 'POST', { action: { target_hub: selectedAction } });
+      const res = await apiCall('/policy_step', 'POST', { mode: mode });
       obs = res.observation;
       rewardHistory.push(obs.last_reward);
-      const action = obs.last_action || {};
-      const routeText = action.source_node !== undefined ? `${action.source_node}→${action.dest_node}` : `option ${selectedAction}`;
-      log(`Step ${obs.step_count}: ${routeText} | reward ${obs.last_reward.toFixed(3)} | ${obs.event_label}`, obs.last_reward > 0.5 ? 'good' : obs.last_reward > 0.2 ? 'warn' : 'bad');
-      selectedAction = null;
-      document.getElementById(`act0`).classList.remove('selected');
-      document.getElementById(`act1`).classList.remove('selected');
-      document.getElementById(`act2`).classList.remove('selected');
+      const action = res.action || obs.last_action || {};
+      const routeText = action.source_node !== undefined
+        ? `${action.source_node}->${action.dest_node} vol=${Number(action.shipment_volume || 0).toFixed(1)}`
+        : 'unstructured action';
+      const audit = res.action_source === 'llm'
+        ? `Source: LLM (${res.llm_model || 'model'})`
+        : 'Source: Heuristic';
+      document.getElementById('policyAudit').textContent = audit;
+      if (res.action_source === 'llm' && res.llm_raw_output) {
+        log(`LLM raw: ${String(res.llm_raw_output).slice(0, 120).replaceAll('\n', ' ')}`, 'info');
+      }
+      log(
+        `Step ${obs.step_count}: [${(res.action_source || mode).toUpperCase()}] ${routeText} | reward ${obs.last_reward.toFixed(3)} | ${obs.event_label}`,
+        obs.last_reward > 0.5 ? 'good' : obs.last_reward > 0.2 ? 'warn' : 'bad'
+      );
       updateUI();
       if (obs.done) {
         log(`Episode complete! Final score: ${obs.cumulative_score.toFixed(3)}`, 'good');
         document.getElementById('submitBtn').disabled = true;
         stopAuto();
       }
-    } catch(e) { log('Step failed: ' + e.message, 'bad'); }
+    } catch(e) {
+      document.getElementById('policyAudit').textContent = `Source: ${mode.toUpperCase()} error`;
+      log(`Policy step failed (${mode}): ${e.message}`, 'bad');
+    }
   }
-
-  // ── Demo Mode ──
   function useDemoMode() {
     demoMode = true;
     document.getElementById('demoBanner').style.display = 'flex';
     setStatus(true);
     resetDemo();
-    log('Demo mode activated — simulating Phase 1 environment', 'info');
+    log('Demo mode activated â€” simulating Phase 1 environment', 'info');
   }
 
   function resetDemo() {
@@ -526,11 +569,11 @@
       task_id: taskId()
     };
     rewardHistory = [];
-    selectedAction = null;
-    buildDemoObs(0);
+        buildDemoObs(0);
     updateUI();
     document.getElementById('submitBtn').disabled = false;
-    log(`Demo reset → task: ${taskId()}`, 'info');
+      document.getElementById('policyAudit').textContent = 'Source: -';
+    log(`Demo reset â†’ task: ${taskId()}`, 'info');
   }
 
   function buildDemoObs(incoming) {
@@ -546,9 +589,17 @@
       last_reward: s.step === 0 ? 0 : reward,
       event_label: s.step < s.events.length ? s.events[s.step] : 'normal',
       message: `Step ${s.step}: Balance gap ${balanceGap.toFixed(1)}%`,
-      objective: s.task_id === 'easy' ? 'Keep all hubs in the 30–70% utilization band.' : s.task_id === 'medium' ? 'Absorb the flash-sale surge without any hub overloading.' : 'Stabilize through repeated surge waves and weather disruptions.',
+      objective: s.task_id === 'easy' ? 'Keep all hubs in the 30â€“70% utilization band.' : s.task_id === 'medium' ? 'Absorb the flash-sale surge without any hub overloading.' : 'Stabilize through repeated surge waves and weather disruptions.',
       done: s.step >= s.max_steps
     };
+  }
+
+  function chooseBestHub(loads) {
+    let best = 0;
+    for (let i = 1; i < loads.length; i++) {
+      if (loads[i] < loads[best]) best = i;
+    }
+    return best;
   }
 
   function demoAction(hub) {
@@ -556,13 +607,11 @@
     const step = s.step;
     if (step >= s.max_steps) return;
     const incoming = s.incoming[step];
-    // apply drain to non-selected hubs
     for (let i = 0; i < 3; i++) {
       if (i !== hub) s.hub_loads[i] = Math.max(0, s.hub_loads[i] - s.drain_rates[i]);
     }
-    // add incoming to selected hub
     s.hub_loads[hub] = Math.min(120, s.hub_loads[hub] + incoming);
-    const overloaded = s.hub_loads.filter(l => l > 100).length;
+    const overloaded = s.hub_loads.filter((l) => l > 100).length;
     if (overloaded > 0) s.bottlenecks++;
     const balanceGap = Math.max(...s.hub_loads) - Math.min(...s.hub_loads);
     const reward = Math.max(0, 1 - overloaded * 0.3 - balanceGap / 100);
@@ -571,11 +620,7 @@
     const nextIncoming = step + 1 < s.incoming.length ? s.incoming[step + 1] : 0;
     buildDemoObs(nextIncoming);
     rewardHistory.push(reward);
-    log(`Step ${step+1}: → Hub ${hub} | reward ${reward.toFixed(3)} | ${obs.event_label}`, reward > 0.6 ? 'good' : reward > 0.3 ? 'warn' : 'bad');
-    selectedAction = null;
-    document.getElementById('act0').classList.remove('selected');
-    document.getElementById('act1').classList.remove('selected');
-    document.getElementById('act2').classList.remove('selected');
+    log(`Step ${step + 1}: -> Hub ${hub} | reward ${reward.toFixed(3)} | ${obs.event_label}`, reward > 0.6 ? 'good' : reward > 0.3 ? 'warn' : 'bad');
     updateUI();
     if (obs.done) {
       log(`Episode complete! Final score: ${s.score.toFixed(3)}`, 'good');
@@ -585,52 +630,104 @@
   }
 
   function sendActionWrapper() {
-    if (selectedAction === null) return;
-    if (demoMode) { demoAction(selectedAction); }
-    else { sendAction(); }
+    if (demoMode) {
+      const loads = Array.isArray(obs?.hub_loads) ? obs.hub_loads : [0, 0, 0];
+      const hub = chooseBestHub(loads);
+      demoAction(hub);
+      return;
+    }
+    sendAction();
   }
   document.getElementById('submitBtn').onclick = sendActionWrapper;
 
-  // Auto-play: picks the lowest-loaded hub
   function toggleAuto() {
     if (autoInterval) { stopAuto(); return; }
     const btn = document.getElementById('autoBtn');
-    btn.textContent = '⏸ Stop Auto';
+    btn.textContent = 'Pause Auto';
     btn.style.borderColor = 'var(--amber)';
     btn.style.background = 'rgba(255,171,0,0.1)';
     autoInterval = setInterval(() => {
       if (!obs || obs.done) { stopAuto(); return; }
-      // Heuristic: pick lowest-loaded hub
-      const loads = obs.hub_loads;
-      let best = 0;
-      for (let i = 1; i < loads.length; i++) { if (loads[i] < loads[best]) best = i; }
-      selectAction(best);
-      if (demoMode) demoAction(best);
-      else sendAction();
+      if (demoMode) {
+        const loads = Array.isArray(obs.hub_loads) ? obs.hub_loads : [0, 0, 0];
+        demoAction(chooseBestHub(loads));
+      } else {
+        sendAction();
+      }
     }, 900);
   }
 
   function stopAuto() {
     if (autoInterval) { clearInterval(autoInterval); autoInterval = null; }
     const btn = document.getElementById('autoBtn');
-    btn.textContent = '▶ Auto Play';
+    btn.textContent = 'Auto Play';
     btn.style.borderColor = 'var(--border)';
     btn.style.background = 'var(--surface2)';
   }
+  function esc(text) {
+    return String(text ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
 
-  // ── UI ──
-  function selectAction(i) {
-    selectedAction = i;
-    for (let j = 0; j < 3; j++) {
-      document.getElementById(`act${j}`).classList.toggle('selected', j === i);
+  function renderNodeGrid() {
+    const grid = document.getElementById('nodeGrid');
+    const meta = document.getElementById('nodeGridMeta');
+    if (!grid || !meta) return;
+
+    const nodeLoads = Array.isArray(obs.node_loads) ? obs.node_loads : [];
+    const capacities = Array.isArray(obs.node_capacities) ? obs.node_capacities : [];
+    const nodeNames = Array.isArray(obs.node_names) ? obs.node_names : [];
+    const nodeTypes = Array.isArray(obs.node_types) ? obs.node_types : [];
+    const visibleSet = new Set(Array.isArray(obs.visible_node_ids) ? obs.visible_node_ids : []);
+    const disruptions = Array.isArray(obs.active_disruptions) ? obs.active_disruptions : [];
+    const disruptedSet = new Set(disruptions.map((d) => Number(d.node_id)));
+
+    if (!nodeLoads.length || !capacities.length) {
+      meta.textContent = 'legacy mode';
+      grid.innerHTML = '<div class="node-chip" style="grid-column:1/-1;font-size:10px;color:var(--muted);">Live node fields are unavailable in this mode.</div>';
+      return;
     }
-    // highlight network line
-    for (let j = 0; j < 3; j++) {
-      const line = document.getElementById(`line${j}`);
-      line.setAttribute('stroke', j === i ? '#00d4ff' : '#1e2d45');
-      line.setAttribute('stroke-width', j === i ? '2.5' : '1.5');
-      line.setAttribute('marker-end', j === i ? 'url(#arrActive)' : 'url(#arr)');
-    }
+
+    const overloadedCount = nodeLoads.filter((load, i) => Number(load) > Number(capacities[i] || 1)).length;
+    meta.textContent = `${nodeLoads.length} nodes | ${overloadedCount} overloaded`;
+
+    const cards = nodeLoads.map((load, index) => {
+      const cap = Number(capacities[index] || 1);
+      const loadNum = Number(load || 0);
+      const util = Math.max(0, (loadNum / Math.max(cap, 1)) * 100);
+      const isVisible = !visibleSet.size || visibleSet.has(index);
+      const isOverloaded = loadNum > cap;
+      const meterClass = util > 100 ? 'bad' : util > 75 ? 'warn' : 'ok';
+      const nodeType = String(nodeTypes[index] || 'node');
+      const nodeName = String(nodeNames[index] || `Node ${index}`);
+      const flags = [];
+      if (!isVisible) flags.push('hidden');
+      if (disruptedSet.has(index)) flags.push('disrupted');
+
+      return `
+        <div class="node-chip ${isVisible ? 'visible' : 'hidden'} ${isOverloaded ? 'overload' : ''}">
+          <div class="node-head">
+            <span class="node-id">N${index}</span>
+            <span class="node-type ${esc(nodeType)}">${esc(nodeType)}</span>
+          </div>
+          <div class="node-name" title="${esc(nodeName)}">${esc(nodeName)}</div>
+          <div class="node-metrics">
+            <span>${loadNum.toFixed(1)}</span>
+            <span>${util.toFixed(0)}%</span>
+          </div>
+          <div class="node-meter">
+            <div class="node-meter-fill ${meterClass}" style="width:${Math.min(util, 100)}%"></div>
+          </div>
+          <div class="node-flags">${flags.length ? flags.join(' | ') : '&nbsp;'}</div>
+        </div>
+      `;
+    });
+
+    grid.innerHTML = cards.join('');
   }
 
   function updateUI() {
@@ -644,14 +741,6 @@
       const pct = Math.min(load, 120);
       document.getElementById(`hub${i}val`).childNodes[0].textContent = load.toFixed(1);
       document.getElementById(`hub${i}drain`).textContent = `Drain: ${drains[i]}%/step`;
-      const source = obs.pending_source_node || 0;
-      const options = (obs.connectivity && obs.connectivity[String(source)]) || [];
-      const target = options[i];
-      const targetText = target !== undefined && obs.node_loads && obs.node_loads[target] !== undefined
-        ? `N${source}→N${target} ${obs.node_loads[target].toFixed(0)}`
-        : load.toFixed(1) + '%';
-      document.getElementById(`act${i}load`).textContent = targetText;
-
       const bar = document.getElementById(`hub${i}bar`);
       bar.style.width = Math.min(pct, 100) + '%';
       bar.className = 'bar-fill ' + (load > 100 ? 'red' : load > 70 ? 'amber' : 'green');
@@ -697,10 +786,10 @@
     // Event badge
     const eb = document.getElementById('eventBadge');
     const ev = obs.event_label || 'normal';
-    if (ev.includes('flash')) { eb.className = 'event-tag event-flash'; eb.textContent = '⚡ FLASH SALE'; }
-    else if (ev.includes('weather')) { eb.className = 'event-tag event-weather'; eb.textContent = '🌩 WEATHER'; }
+    if (ev.includes('flash')) { eb.className = 'event-tag event-flash'; eb.textContent = 'âš¡ FLASH SALE'; }
+    else if (ev.includes('weather')) { eb.className = 'event-tag event-weather'; eb.textContent = 'ðŸŒ© WEATHER'; }
     else if (ev.includes('supplier')) { eb.className = 'event-tag event-weather'; eb.textContent = 'SUPPLIER RISK'; }
-    else { eb.className = 'event-tag event-normal'; eb.textContent = '✓ NORMAL'; }
+    else { eb.className = 'event-tag event-normal'; eb.textContent = 'âœ“ NORMAL'; }
 
     // Score arc (173 = half circumference of r=55 arc)
     const score = obs.cumulative_score || 0;
@@ -713,18 +802,19 @@
     const lrEl = document.getElementById('lastReward');
     lrEl.textContent = lr.toFixed(3);
     lrEl.className = 'stat-val ' + (lr > 0.6 ? 'green' : lr > 0.3 ? 'amber' : 'red');
-    document.getElementById('bottlenecks').textContent = obs.overloaded_hubs > 0 ? '⚠ ' + obs.overloaded_hubs : '0';
+    document.getElementById('bottlenecks').textContent = obs.overloaded_hubs > 0 ? 'âš  ' + obs.overloaded_hubs : '0';
     document.getElementById('overloaded').textContent = obs.overloaded_hubs;
-    document.getElementById('taskName').textContent = obs.task_id || '—';
-    document.getElementById('difficulty').textContent = (obs.difficulty || '—').toUpperCase();
+    document.getElementById('taskName').textContent = obs.task_id || 'â€”';
+    document.getElementById('difficulty').textContent = (obs.difficulty || 'â€”').toUpperCase();
     document.getElementById('inTransit').textContent = (obs.in_transit_shipments || []).length;
     document.getElementById('retailDelivered').textContent = (obs.retail_delivered || 0).toFixed(1);
     document.getElementById('slaSuccess').textContent = ((obs.sla_success_rate || 0) * 100).toFixed(0) + '%';
     document.getElementById('dynamicPressure').textContent = ((obs.dynamic_pressure || 0) * 100).toFixed(0) + '%';
-    document.getElementById('priorityTarget').textContent = obs.priority_target_name || ('Node ' + (obs.priority_target_node ?? '—'));
-    document.getElementById('objective').textContent = obs.objective || '—';
+    document.getElementById('priorityTarget').textContent = obs.priority_target_name || ('Node ' + (obs.priority_target_node ?? 'â€”'));
+    document.getElementById('objective').textContent = obs.objective || 'â€”';
     document.getElementById('lastMsg').textContent = obs.message || '';
 
+    renderNodeGrid();
     drawSparkline();
   }
 
@@ -797,4 +887,6 @@
 </script>
 </body>
 </html>
+
+
 

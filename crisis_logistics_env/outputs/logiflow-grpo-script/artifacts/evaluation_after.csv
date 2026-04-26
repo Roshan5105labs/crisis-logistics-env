@@ -1,0 +1,10 @@
+policy,task_id,score,total_reward,retail_delivered,sla_success_rate,priority_service_rate,invalid_actions
+round_robin,easy,0.473,26.563000000000002,0.0,0.0,0.0,0
+heuristic,easy,0.768,35.149,52.08,1.0,0.0,0
+model,easy,0.45,22.556999999999995,0.0,0.0,0.0,0
+round_robin,medium,0.472,35.858000000000004,0.0,0.0,0.0,0
+heuristic,medium,0.763,46.003999999999984,72.23,1.0,0.067,3
+model,medium,0.233,24.093,0.0,0.0,0.0,4
+round_robin,hard,0.461,38.70799999999999,0.0,0.0,0.0,6
+heuristic,hard,0.814,52.561,143.12,1.0,0.13,7
+model,hard,0.223,27.423000000000005,0.0,0.0,0.0,7

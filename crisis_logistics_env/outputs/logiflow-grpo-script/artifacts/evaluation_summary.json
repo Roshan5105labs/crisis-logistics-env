@@ -1,0 +1,240 @@
+{
+  "timestamp": "2026-04-25T21:17:09.308876Z",
+  "model_name": "Qwen/Qwen2.5-0.5B-Instruct",
+  "seed": 42,
+  "before": [
+    {
+      "policy": "round_robin",
+      "task_id": "easy",
+      "score": 0.473,
+      "total_reward": 26.563000000000002,
+      "retail_delivered": 0.0,
+      "sla_success_rate": 0.0,
+      "priority_service_rate": 0.0,
+      "invalid_actions": 0
+    },
+    {
+      "policy": "heuristic",
+      "task_id": "easy",
+      "score": 0.768,
+      "total_reward": 35.149,
+      "retail_delivered": 52.08,
+      "sla_success_rate": 1.0,
+      "priority_service_rate": 0.0,
+      "invalid_actions": 0
+    },
+    {
+      "policy": "model",
+      "task_id": "easy",
+      "score": 0.45,
+      "total_reward": 22.556999999999995,
+      "retail_delivered": 0.0,
+      "sla_success_rate": 0.0,
+      "priority_service_rate": 0.0,
+      "invalid_actions": 0
+    },
+    {
+      "policy": "round_robin",
+      "task_id": "medium",
+      "score": 0.472,
+      "total_reward": 35.858000000000004,
+      "retail_delivered": 0.0,
+      "sla_success_rate": 0.0,
+      "priority_service_rate": 0.0,
+      "invalid_actions": 0
+    },
+    {
+      "policy": "heuristic",
+      "task_id": "medium",
+      "score": 0.763,
+      "total_reward": 46.003999999999984,
+      "retail_delivered": 72.23,
+      "sla_success_rate": 1.0,
+      "priority_service_rate": 0.067,
+      "invalid_actions": 3
+    },
+    {
+      "policy": "model",
+      "task_id": "medium",
+      "score": 0.235,
+      "total_reward": 23.695000000000004,
+      "retail_delivered": 0.0,
+      "sla_success_rate": 0.0,
+      "priority_service_rate": 0.0,
+      "invalid_actions": 7
+    },
+    {
+      "policy": "round_robin",
+      "task_id": "hard",
+      "score": 0.461,
+      "total_reward": 38.70799999999999,
+      "retail_delivered": 0.0,
+      "sla_success_rate": 0.0,
+      "priority_service_rate": 0.0,
+      "invalid_actions": 6
+    },
+    {
+      "policy": "heuristic",
+      "task_id": "hard",
+      "score": 0.814,
+      "total_reward": 52.561,
+      "retail_delivered": 143.12,
+      "sla_success_rate": 1.0,
+      "priority_service_rate": 0.13,
+      "invalid_actions": 7
+    },
+    {
+      "policy": "model",
+      "task_id": "hard",
+      "score": 0.211,
+      "total_reward": 22.374000000000006,
+      "retail_delivered": 0.0,
+      "sla_success_rate": 0.0,
+      "priority_service_rate": 0.0,
+      "invalid_actions": 24
+    }
+  ],
+  "after": [
+    {
+      "policy": "round_robin",
+      "task_id": "easy",
+      "score": 0.473,
+      "total_reward": 26.563000000000002,
+      "retail_delivered": 0.0,
+      "sla_success_rate": 0.0,
+      "priority_service_rate": 0.0,
+      "invalid_actions": 0
+    },
+    {
+      "policy": "heuristic",
+      "task_id": "easy",
+      "score": 0.768,
+      "total_reward": 35.149,
+      "retail_delivered": 52.08,
+      "sla_success_rate": 1.0,
+      "priority_service_rate": 0.0,
+      "invalid_actions": 0
+    },
+    {
+      "policy": "model",
+      "task_id": "easy",
+      "score": 0.45,
+      "total_reward": 22.556999999999995,
+      "retail_delivered": 0.0,
+      "sla_success_rate": 0.0,
+      "priority_service_rate": 0.0,
+      "invalid_actions": 0
+    },
+    {
+      "policy": "round_robin",
+      "task_id": "medium",
+      "score": 0.472,
+      "total_reward": 35.858000000000004,
+      "retail_delivered": 0.0,
+      "sla_success_rate": 0.0,
+      "priority_service_rate": 0.0,
+      "invalid_actions": 0
+    },
+    {
+      "policy": "heuristic",
+      "task_id": "medium",
+      "score": 0.763,
+      "total_reward": 46.003999999999984,
+      "retail_delivered": 72.23,
+      "sla_success_rate": 1.0,
+      "priority_service_rate": 0.067,
+      "invalid_actions": 3
+    },
+    {
+      "policy": "model",
+      "task_id": "medium",
+      "score": 0.233,
+      "total_reward": 24.093,
+      "retail_delivered": 0.0,
+      "sla_success_rate": 0.0,
+      "priority_service_rate": 0.0,
+      "invalid_actions": 4
+    },
+    {
+      "policy": "round_robin",
+      "task_id": "hard",
+      "score": 0.461,
+      "total_reward": 38.70799999999999,
+      "retail_delivered": 0.0,
+      "sla_success_rate": 0.0,
+      "priority_service_rate": 0.0,
+      "invalid_actions": 6
+    },
+    {
+      "policy": "heuristic",
+      "task_id": "hard",
+      "score": 0.814,
+      "total_reward": 52.561,
+      "retail_delivered": 143.12,
+      "sla_success_rate": 1.0,
+      "priority_service_rate": 0.13,
+      "invalid_actions": 7
+    },
+    {
+      "policy": "model",
+      "task_id": "hard",
+      "score": 0.223,
+      "total_reward": 27.423000000000005,
+      "retail_delivered": 0.0,
+      "sla_success_rate": 0.0,
+      "priority_service_rate": 0.0,
+      "invalid_actions": 7
+    }
+  ],
+  "summary": [
+    {
+      "policy": "heuristic",
+      "avg_score": 0.7816666666666666,
+      "avg_reward": 44.571333333333335,
+      "avg_sla": 1.0,
+      "phase": "before"
+    },
+    {
+      "policy": "model",
+      "avg_score": 0.2986666666666667,
+      "avg_reward": 22.875333333333334,
+      "avg_sla": 0.0,
+      "phase": "before"
+    },
+    {
+      "policy": "round_robin",
+      "avg_score": 0.4686666666666666,
+      "avg_reward": 33.709666666666664,
+      "avg_sla": 0.0,
+      "phase": "before"
+    },
+    {
+      "policy": "heuristic",
+      "avg_score": 0.7816666666666666,
+      "avg_reward": 44.571333333333335,
+      "avg_sla": 1.0,
+      "phase": "after"
+    },
+    {
+      "policy": "model",
+      "avg_score": 0.302,
+      "avg_reward": 24.691000000000003,
+      "avg_sla": 0.0,
+      "phase": "after"
+    },
+    {
+      "policy": "round_robin",
+      "avg_score": 0.4686666666666666,
+      "avg_reward": 33.709666666666664,
+      "avg_sla": 0.0,
+      "phase": "after"
+    }
+  ],
+  "improvement": {
+    "model_avg_score_before": 0.2986666666666667,
+    "model_avg_score_after": 0.302,
+    "delta_score": 0.0033333333333332993,
+    "reward_history_points": 28,
+    "reward_history_mean": 0.066377
+  }
+}

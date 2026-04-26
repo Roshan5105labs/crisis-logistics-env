@@ -1,0 +1,7 @@
+{
+  "model_avg_score_before": 0.2986666666666667,
+  "model_avg_score_after": 0.302,
+  "delta_score": 0.0033333333333332993,
+  "reward_history_points": 28,
+  "reward_history_mean": 0.066377
+}
