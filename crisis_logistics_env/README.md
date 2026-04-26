@@ -267,7 +267,7 @@ the model starts producing valid JSON immediately and reward climbs from the fir
 actions, and bottlenecks — for all three policies across all three tasks.*
 
 ![Training Loss](artifacts/Training_loss.png)
-
+---
 Training was run on Colab free-tier T4 GPU with Qwen2.5-0.5B-Instruct.
 The most concrete evidence of learning is the **invalid action reduction
 on Hard difficulty: 24 → 7 (71% reduction)**, confirming the model
@@ -275,7 +275,7 @@ learned the legal route topology of the network.
 Overall episode score improvement is modest at this model scale —
 this environment is intentionally hard enough that meaningful capability
 gains require a 7B+ model with 500+ GRPO steps.
----
+
 
 ## What the Trained Agent Thinks
 
